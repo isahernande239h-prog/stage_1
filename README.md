@@ -162,3 +162,5 @@ Resultados:
 ```bash
 python report/build_report.py          # necesita Chrome o Chromium (variable CHROME_BIN si no lo encuentra)
 ```
+
+Los datos de la portada están en `report/cover.json`. El PDF entregado es `report/informe.pdf`.
