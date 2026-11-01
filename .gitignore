@@ -1,0 +1,22 @@
+# datos generados
+data/
+work/
+*.db
+!sample_data/**
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# java
+java/target/
+
+# node
+javascript/node_modules/
+
+# varios
+.DS_Store
+.idea/
+.vscode/
