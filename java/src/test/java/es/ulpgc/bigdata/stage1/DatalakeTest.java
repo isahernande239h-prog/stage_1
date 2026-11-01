@@ -165,4 +165,10 @@ class DatalakeTest {
         assertEquals("T\u00EDtulo", new String(Files.readAllBytes(found[0]), StandardCharsets.UTF_8));
         assertEquals(List.of("T\u00EDtulo", "cuerpo \uD835\uDD04"), List.of(lake.readBook(3)));
     }
+
+    @Test
+    void reconcileTimeLayoutOnEmptyFolder() throws Exception {
+        Datalake lake = new Datalake(tmp.resolve("lake"), "time");
+        assertEquals(0, lake.reconcile(new Control(tmp.resolve("control"))).get("temps"));
+    }
 }

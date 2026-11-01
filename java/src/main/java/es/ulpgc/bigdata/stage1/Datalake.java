@@ -305,6 +305,7 @@ public class Datalake {
             for (Map.Entry<Integer, List<String>> e : new TreeMap<>(scan.complete).entrySet()) {
                 sb.append(e.getKey()).append('\t').append(e.getValue().get(0)).append('\n');
             }
+            Files.createDirectories(root); // puede que aun no se haya escrito nada
             Path tmp = root.resolve(REGISTRY + ".tmp");
             Files.writeString(tmp, sb, StandardCharsets.UTF_8);
             FileUtil.replace(tmp, root.resolve(REGISTRY));
