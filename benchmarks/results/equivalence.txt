@@ -1,0 +1,17 @@
+Salida canonica: 55 libros en bloque + 5 incrementales
+
+lenguaje    estructura  metadatos  postings  sha256 metadatos  sha256 postings
+python      json               60    165479  ac092db044f54e7b  90e018fc23562283
+java        json               60    165479  ac092db044f54e7b  90e018fc23562283
+javascript  json               60    165479  ac092db044f54e7b  90e018fc23562283
+python      hier               60    165479  ac092db044f54e7b  90e018fc23562283
+java        hier               60    165479  ac092db044f54e7b  90e018fc23562283
+javascript  hier               60    165479  ac092db044f54e7b  90e018fc23562283
+python      mongo              60    165479  ac092db044f54e7b  90e018fc23562283
+java        mongo              60    165479  ac092db044f54e7b  90e018fc23562283
+javascript  mongo              60    165479  ac092db044f54e7b  90e018fc23562283
+python      sqlite             60    165479  ac092db044f54e7b  90e018fc23562283
+java        sqlite             60    165479  ac092db044f54e7b  90e018fc23562283
+javascript  sqlite             60    165479  ac092db044f54e7b  90e018fc23562283
+
+IDENTICAS en los 12 casos

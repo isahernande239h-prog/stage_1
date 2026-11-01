@@ -1,0 +1,118 @@
+# Resultados de los benchmarks (generado por benchmarks/analyze.py)
+
+### Datalake con 400 libros (escritura desde la cache local, localizacion y memoria)
+
+| layout | lenguaje | libros/s | MB/s | lookup directo (µs) | carga registro (ms) | lookup escaneo (ms) | pico RAM (MB) |
+|---|---|---|---|---|---|---|---|
+| time | Python | 377.9 ± 14.7 | 131.1 ± 5.1 | 12.9 ± 2.1 | 0.11 ± 0.00 | 1.50 ± 0.07 | 103 ± 1 |
+| time | Java | 468.4 ± 13.4 | 162.5 ± 4.6 | 4.7 ± 0.6 | 0.49 ± 0.05 | 2.29 ± 0.08 | 331 ± 4 |
+| time | JavaScript | 567.2 ± 4.9 | 196.8 ± 1.7 | 6.5 ± 0.2 | 0.25 ± 0.01 | 1.72 ± 0.04 | 225 ± 3 |
+| book | Python | 394.6 ± 9.7 | 136.9 ± 3.4 | 10.8 ± 0.2 | 0.00 ± 0.00 | 5.92 ± 0.22 | 103 ± 0 |
+| book | Java | 487.6 ± 6.9 | 169.1 ± 2.4 | 4.3 ± 0.0 | 0.00 ± 0.00 | 7.52 ± 0.24 | 333 ± 1 |
+| book | JavaScript | 575.8 ± 2.0 | 199.7 ± 0.7 | 6.6 ± 0.1 | 0.00 ± 0.00 | 6.43 ± 0.13 | 215 ± 3 |
+| range | Python | 399.1 ± 12.3 | 138.4 ± 4.3 | 11.1 ± 0.2 | 0.00 ± 0.00 | 1.94 ± 0.02 | 104 ± 2 |
+| range | Java | 469.0 ± 14.2 | 162.7 ± 4.9 | 10.9 ± 0.3 | 0.00 ± 0.00 | 2.65 ± 0.05 | 334 ± 2 |
+| range | JavaScript | 572.1 ± 7.8 | 198.4 ± 2.7 | 6.7 ± 0.2 | 0.00 ± 0.00 | 2.05 ± 0.04 | 211 ± 5 |
+
+### Deteccion de los 10 libros nuevos (ms, media de los tres lenguajes)
+
+| layout | libros | ficheros de control | escaneo completo | escaneo podado | correcto |
+|---|---|---|---|---|---|
+| time | 50 | 0.12 ± 0.06 | 0.36 ± 0.12 | 0.20 ± 0.07 | si |
+| time | 100 | 0.14 ± 0.06 | 0.55 ± 0.13 | 0.18 ± 0.06 | si |
+| time | 200 | 0.18 ± 0.09 | 0.96 ± 0.19 | 0.20 ± 0.05 | si |
+| time | 400 | 0.26 ± 0.11 | 1.71 ± 0.28 | 0.21 ± 0.05 | si |
+| book | 50 | 0.14 ± 0.06 | 0.96 ± 0.16 | - | si |
+| book | 100 | 0.17 ± 0.08 | 1.68 ± 0.21 | - | si |
+| book | 200 | 0.25 ± 0.13 | 3.49 ± 0.68 | - | si |
+| book | 400 | 0.44 ± 0.23 | 6.38 ± 0.64 | - | si |
+| range | 50 | 0.14 ± 0.06 | 0.79 ± 0.18 | - | si |
+| range | 100 | 0.16 ± 0.07 | 1.08 ± 0.18 | - | si |
+| range | 200 | 0.32 ± 0.35 | 1.60 ± 0.23 | - | si |
+| range | 400 | 0.35 ± 0.21 | 2.17 ± 0.28 | - | si |
+
+### Ocupacion con 400 libros (igual en los tres lenguajes)
+
+| layout | ficheros | directorios | MB | MB asignados | bytes registro | bytes control | igual en los 3 |
+|---|---|---|---|---|---|---|---|
+| time | 800 | 42 | 138.75 | 140.81 | 7149 | 4641 | si |
+| book | 800 | 400 | 138.75 | 140.81 | 0 | 4641 | si |
+| range | 800 | 75 | 138.75 | 140.81 | 0 | 4641 | si |
+
+### Recuperacion: caida durante el libro 51 de 100 y reanudacion 24 h despues
+
+| layout | caida | reanudacion | consistentes | duplicados | huerfanos | temporales | reconciliar Python (ms) | reconciliar Java (ms) | reconciliar JS (ms) |
+|---|---|---|---|---|---|---|---|---|---|
+| time | entre renombrados | solo control | 0/9 | 0.0 | 1.0 | 1.0 | - | - | - |
+| time | entre renombrados | con reconciliacion | 9/9 | 0.0 | 0.0 | 0.0 | 0.7 ± 0.0 | 8.9 ± 0.1 | 2.4 ± 1.2 |
+| time | antes del control | solo control | 0/9 | 1.0 | 0.0 | 0.0 | - | - | - |
+| time | antes del control | con reconciliacion | 9/9 | 0.0 | 0.0 | 0.0 | 0.8 ± 0.0 | 9.1 ± 0.1 | 1.7 ± 0.1 |
+| book | entre renombrados | solo control | 9/9 | 0.0 | 0.0 | 0.0 | - | - | - |
+| book | entre renombrados | con reconciliacion | 9/9 | 0.0 | 0.0 | 0.0 | 1.0 ± 0.0 | 4.9 ± 0.2 | 1.9 ± 0.0 |
+| book | antes del control | solo control | 9/9 | 0.0 | 0.0 | 0.0 | - | - | - |
+| book | antes del control | con reconciliacion | 9/9 | 0.0 | 0.0 | 0.0 | 1.2 ± 0.0 | 5.4 ± 0.2 | 2.1 ± 0.0 |
+| range | entre renombrados | solo control | 9/9 | 0.0 | 0.0 | 0.0 | - | - | - |
+| range | entre renombrados | con reconciliacion | 9/9 | 0.0 | 0.0 | 0.0 | 0.9 ± 0.1 | 4.9 ± 0.3 | 1.9 ± 0.2 |
+| range | antes del control | solo control | 9/9 | 0.0 | 0.0 | 0.0 | - | - | - |
+| range | antes del control | con reconciliacion | 9/9 | 0.0 | 0.0 | 0.0 | 1.0 ± 0.0 | 5.6 ± 0.4 | 2.0 ± 0.2 |
+
+### Ingesta con el cliente HTTP de cada lenguaje
+
+| origen | lenguaje | layout | libros | libros/s | libros/s desde cache | reps |
+|---|---|---|---|---|---|---|
+| espejo HTTP local | Python | time | 400 | 292.0 ± 14.9 | 377.9 | 3 |
+| espejo HTTP local | Python | book | 400 | 298.9 ± 3.6 | 394.6 | 3 |
+| espejo HTTP local | Python | range | 400 | 299.9 ± 4.9 | 399.1 | 3 |
+| espejo HTTP local | Java | time | 400 | 318.1 ± 26.1 | 468.4 | 3 |
+| espejo HTTP local | Java | book | 400 | 324.4 ± 1.3 | 487.6 | 3 |
+| espejo HTTP local | Java | range | 400 | 328.0 ± 4.0 | 469.0 | 3 |
+| espejo HTTP local | JavaScript | time | 400 | 394.8 ± 11.2 | 567.2 | 3 |
+| espejo HTTP local | JavaScript | book | 400 | 405.4 ± 19.6 | 575.8 | 3 |
+| espejo HTTP local | JavaScript | range | 400 | 412.6 ± 4.5 | 572.1 | 3 |
+| gutenberg.org (orientativo) | Python | range | 10 | 3.77 | - | 1 |
+| gutenberg.org (orientativo) | Java | range | 10 | 3.53 | - | 1 |
+| gutenberg.org (orientativo) | JavaScript | range | 10 | 2.64 | - | 1 |
+
+### Tamano del problema
+
+| libros | tokens | terminos | postings | mismas respuestas en las 12 combinaciones |
+|---|---|---|---|---|
+| 25 | 637291 | 60383 | 136859 | si |
+| 50 | 1586937 | 124779 | 319297 | si |
+| 100 | 3305997 | 238601 | 656193 | si |
+| 200 | 6484063 | 332364 | 1272929 | si |
+| 400 | 12973396 | 528165 | 2460831 | si |
+
+### Indice con 400 libros
+
+| estructura | lenguaje | construccion (s) | tokenizar (s) | persistir (s) | apertura (ms) | consulta p50 (ms) | consulta p95 (ms) | disco (MB) | pico RAM (MB) |
+|---|---|---|---|---|---|---|---|---|---|
+| json | Python | 27.07 ± 0.05 | 25.69 ± 0.05 | 1.38 ± 0.00 | 387.4 ± 1.6 | 0.039 ± 0.001 | 0.059 ± 0.000 | 32.3 | 501 ± 31 |
+| json | Java | 3.05 ± 0.05 | 2.72 ± 0.06 | 0.33 ± 0.02 | 348.3 ± 30.3 | 0.054 ± 0.001 | 0.111 ± 0.002 | 32.3 | 1091 ± 51 |
+| json | JavaScript | 4.40 ± 0.20 | 4.12 ± 0.20 | 0.28 ± 0.01 | 483.6 ± 30.3 | 0.039 ± 0.000 | 0.058 ± 0.001 | 32.3 | 841 ± 13 |
+| hier | Python | 73.38 ± 0.75 | 25.66 ± 0.09 | 47.72 ± 0.69 | 3.6 ± 2.3 | 0.133 ± 0.005 | 0.188 ± 0.006 | 2163.4 | 332 ± 6 |
+| hier | Java | 43.17 ± 0.92 | 2.80 ± 0.02 | 40.37 ± 0.90 | 2.6 ± 0.4 | 0.150 ± 0.012 | 0.393 ± 0.173 | 2163.4 | 941 ± 9 |
+| hier | JavaScript | 45.01 ± 0.74 | 4.50 ± 0.04 | 40.51 ± 0.72 | 2.3 ± 0.2 | 0.113 ± 0.001 | 0.167 ± 0.004 | 2163.4 | 657 ± 31 |
+| mongo | Python | 27.95 ± 0.20 | 25.79 ± 0.19 | 2.16 ± 0.03 | 0.0 ± 0.0 | 0.268 ± 0.003 | 0.346 ± 0.016 | 29.1 | 374 ± 4 (+205 mongod) |
+| mongo | Java | 5.12 ± 0.24 | 2.74 ± 0.04 | 2.38 ± 0.21 | 0.0 ± 0.0 | 0.535 ± 0.034 | 0.942 ± 0.346 | 31.7 | 1090 ± 36 (+218 mongod) |
+| mongo | JavaScript | 6.06 ± 0.25 | 4.14 ± 0.17 | 1.92 ± 0.09 | 0.0 ± 0.0 | 0.423 ± 0.001 | 0.549 ± 0.004 | 29.1 | 812 ± 99 (+244 mongod) |
+| sqlite | Python | 27.65 ± 0.23 | 25.60 ± 0.20 | 2.04 ± 0.04 | 0.2 ± 0.0 | 0.105 ± 0.002 | 0.153 ± 0.005 | 50.0 | 335 ± 10 |
+| sqlite | Java | 5.20 ± 0.22 | 2.74 ± 0.14 | 2.47 ± 0.09 | 1.0 ± 0.6 | 0.157 ± 0.000 | 0.217 ± 0.003 | 50.0 | 1021 ± 78 |
+| sqlite | JavaScript | 6.32 ± 0.24 | 4.18 ± 0.21 | 2.13 ± 0.03 | 0.2 ± 0.0 | 0.149 ± 0.001 | 0.221 ± 0.010 | 50.0 | 703 ± 42 |
+
+### Anadir 10 libros a un indice existente (ms por cada 1000 terminos distintos del libro)
+
+| estructura | lenguaje | n=25 | n=50 | n=100 | n=200 |
+|---|---|---|---|---|---|
+| json | Python | 18.1 | 21.0 | 56.3 | 126.4 |
+| json | Java | 3.6 | 4.2 | 11.8 | 24.7 |
+| json | JavaScript | 4.7 | 6.0 | 14.8 | 29.9 |
+| hier | Python | 129.6 | 140.9 | 154.3 | 175.5 |
+| hier | Java | 114.1 | 119.4 | 152.3 | 162.5 |
+| hier | JavaScript | 117.6 | 118.4 | 150.0 | 165.3 |
+| mongo | Python | 15.6 | 15.6 | 16.6 | 17.5 |
+| mongo | Java | 16.2 | 15.9 | 17.5 | 19.2 |
+| mongo | JavaScript | 15.3 | 15.5 | 16.5 | 17.7 |
+| sqlite | Python | 2.6 | 3.5 | 5.8 | 8.2 |
+| sqlite | Java | 2.9 | 3.9 | 6.5 | 9.0 |
+| sqlite | JavaScript | 2.8 | 3.6 | 5.7 | 8.3 |

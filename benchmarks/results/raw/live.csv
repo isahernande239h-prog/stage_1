@@ -1,0 +1,4 @@
+run_id,lang,layout,n,rep,reconcile_ms,ingested,failed,seconds,bytes,books_per_s,mb_per_s,peak_rss_mb,wall_s
+python|range|0,python,range,10,0,,10,0,2.654861916991649,3703146,3.766674242452307,1.3948544654240291,51.9,2.805
+java|range|0,java,range,10,0,,10,0,2.830938375,3703146,3.532397627694739,1.3080984145407262,135.9,3.314
+javascript|range|0,javascript,range,10,0,,10,0,3.78984925,3703146,2.6386273807592744,0.9771222430549182,120.4,3.913
