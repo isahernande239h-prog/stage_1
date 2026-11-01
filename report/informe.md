@@ -67,8 +67,8 @@ aunque varias decisiones se han tomado pensando ya en ella y se comentan en el t
   <text x="655" y="100" text-anchor="middle" font-weight="600">Datamarts</text>
   <text x="655" y="118" text-anchor="middle" fill="#333">metadata.db</text>
   <text x="655" y="136" text-anchor="middle" fill="#333">índice:</text>
-  <text x="655" y="151" text-anchor="middle" fill="#333">json · hier</text>
-  <text x="655" y="166" text-anchor="middle" fill="#333">mongo · sqlite</text>
+  <text x="655" y="151" text-anchor="middle" fill="#333">json, hier,</text>
+  <text x="655" y="166" text-anchor="middle" fill="#333">mongo, sqlite</text>
   <text x="655" y="190" text-anchor="middle" fill="#555" font-size="10">build / add / postings</text>
 
   <rect x="600" y="240" width="110" height="50" rx="6" fill="#f3f4f6" stroke="#8a94a3"/>
@@ -84,7 +84,7 @@ aunque varias decisiones se han tomado pensando ya en ella y se comentan en el t
   <path d="M380,260 C460,260 495,230 495,194" fill="none" stroke="#8a6d00" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#a)"/>
   <text x="96" y="284" fill="#8a6d00" font-size="10">descargar id</text>
   <text x="402" y="284" fill="#8a6d00" font-size="10">indexar id</text>
-  <text x="360" y="343" text-anchor="middle" fill="#333" font-size="10.5">Implementado tres veces con las mismas reglas: Python 3.12 · Java 17 · JavaScript (Node.js 24)</text>
+  <text x="360" y="343" text-anchor="middle" fill="#333" font-size="10.5">Implementado tres veces con las mismas reglas: Python 3.12, Java 17 y JavaScript (Node.js 24)</text>
 </svg>
 </figure>
 <p class="caption">Figura 1. Arquitectura de la capa de datos. Flechas continuas: flujo de datos. Discontinuas: decisiones de la capa de control.</p>
@@ -156,9 +156,9 @@ escritura:
 
 | layout | ruta | cómo se localiza un libro | estructura auxiliar |
 |---|---|---|---|
-| `time` | `YYYYMMDD/HH/<id>.header.txt` (hora UTC de la escritura) | hay que saber cuándo se descargó | `_registry.tsv` (id → partición) |
+| `time` | `YYYYMMDD/HH/<id>.header.txt` (hora UTC de la escritura) | hay que saber cuándo se descargó | `_registry.tsv` (id y partición) |
 | `book` | `<id>/header.txt`, `<id>/body.txt` | ruta calculada a partir del id | ninguna |
-| `range` | `<bucket>/<id>.header.txt` con bucket = ⌊id/1000⌋·1000 (`001000`) | ruta calculada a partir del id | ninguna |
+| `range` | `<bucket>/<id>.header.txt` con `bucket = floor(id/1000)*1000` (`001000`) | ruta calculada a partir del id | ninguna |
 
 En el layout `time` la ruta depende del momento de la descarga y no del identificador, por eso hace
 falta un registro para encontrar un libro sin recorrer todo el árbol. Además, un benchmark hace en
@@ -210,7 +210,7 @@ un término), de forma que el benchmark ejecuta exactamente el mismo código par
 | estructura | formato | añadir un libro |
 |---|---|---|
 | JSON | `datamarts/inverted_index.json`: `{"término": {"id": tf}}` | cargar, fusionar y reescribir el fichero entero (temporal + renombrado) |
-| Carpetas (`hier`) | `inverted_index/<A-Z\|_>/<término>.txt` con líneas `id<TAB>tf` | añadir una línea al fichero de cada término del libro |
+| Carpetas (`hier`) | `inverted_index/<letra>/<término>.txt` con líneas `id<TAB>tf` | añadir una línea al fichero de cada término del libro |
 | MongoDB | un documento por término: `{_id: término, postings: {"id": tf}}` | `updateOne` con `$set postings.<id>` y `upsert`, en lote no ordenado |
 | SQLite | `postings(term, book_id, tf)`, clave `(term, book_id)`, `WITHOUT ROWID` | `INSERT OR REPLACE` en una transacción |
 
@@ -228,22 +228,22 @@ cualquier otro carácter como `%XX` (bytes UTF-8); a los nombres reservados se l
 ## 3.6. Lenguajes y equivalencia
 
 Se han elegido Python 3.12 (el lenguaje de los ejemplos del enunciado), Java 17 (el de los servicios de
-la fase 2, así que parte del código se reutiliza) y JavaScript sobre Node.js 24, que el enunciado cita
+la fase 2, así que parte del código se podrá reutilizar) y JavaScript sobre Node.js 24, que el enunciado cita
 y que tiene un modelo de ejecución diferente (motor V8 con compilación JIT). C# se descartó porque no
 aportaba nada distinto de Java.
 
-Que tres implementaciones «sigan las mismas reglas» hay que comprobarlo. El comando `canonical`
+Para comprobar que las tres implementaciones hacen de verdad lo mismo, el comando `canonical`
 construye metadatos e índice (55 libros de golpe y 5 añadidos uno a uno) y exporta una salida en un
-formato fijo, y la campaña `equivalence` la compara. Las 12 combinaciones de lenguaje y estructura dan
+formato fijo, y la campaña `equivalence` compara la de los tres. Las 12 combinaciones de lenguaje y estructura dan
 exactamente los mismos 60 registros de metadatos y las mismas 165 479 listas de términos (mismo resumen
 SHA-256, ver `benchmarks/results/equivalence.txt`). Además, en todos los benchmarks se comprueba que
 las 20 consultas devuelven los mismos libros en todos los lenguajes y estructuras. Por el camino
-hubo que corregir varias diferencias sutiles:
+aparecieron varias diferencias que no daban ningún error y que hubo que corregir:
 
 - La bandera `m` de las expresiones regulares de JavaScript también trata `U+2028` como fin de línea,
   así que el texto se recorre línea a línea separando solo por `\n`.
-- `JSON.parse` reordena las claves que parecen números, y un objeto normal de JavaScript resuelve
-  términos como `constructor` contra su prototipo. El índice JSON de JavaScript usa `Map` y un lector
+- `JSON.parse` reordena las claves que parecen números, y en un objeto normal de JavaScript un término
+  como `constructor` choca con el prototipo. Por eso el índice JSON de JavaScript usa `Map` y un lector
   propio.
 - El decodificador UTF-8 de Java sustituye una secuencia inválida por un solo `U+FFFD` donde Python
   pone tres. Java usa un decodificador pequeño propio cuando aparece ese carácter.
@@ -262,7 +262,7 @@ cuentan como letras en algunos lenguajes. Ninguna aparece en el corpus.
 | Sistema operativo | macOS 26.3.1 (arm64) |
 | Entornos | Python 3.12.13 (SQLite 3.53); OpenJDK 17.0.21 (Temurin) con `-Xms256m -Xmx3g`; Node.js 24.15 con `--max-old-space-size=3072`; MongoDB 7.0.14 local con 1 GB de caché |
 | Corpus | 400 libros (143 MB), siempre en el mismo orden; subconjuntos de 25 a 400 libros |
-| Repeticiones | datalake 5, recuperación 3, espejo HTTP 3, índice 3; orden intercalado (repetición → tamaño → estructura → lenguaje) |
+| Repeticiones | datalake 5, recuperación 3, espejo HTTP 3, índice 3; las ejecuciones se intercalan (por repetición, tamaño, estructura y lenguaje) |
 | Aislamiento | cada configuración en un proceso nuevo y con la carpeta de trabajo vacía |
 | Tiempos | reloj monotónico dentro de cada programa (`perf_counter`, `nanoTime`, `hrtime`) |
 | Memoria | pico de memoria residente del proceso, muestreado cada 20 ms desde fuera con psutil (igual para los tres lenguajes); con MongoDB también la del servidor `mongod` |
@@ -287,9 +287,9 @@ completas (`benchmarks/results/tables.md`) y las figuras. Aquí se muestran las 
 
 | lenguaje | time (libros/s) | book (libros/s) | range (libros/s) | MB/s (range) | pico RAM (MB) |
 |---|---|---|---|---|---|
-| Python | 378 ± 15 | 395 ± 10 | 399 ± 12 | 138 ± 4 | 103–104 |
-| Java | 468 ± 13 | 488 ± 7 | 469 ± 14 | 163 ± 5 | 331–334 |
-| JavaScript | 567 ± 5 | 576 ± 2 | 572 ± 8 | 198 ± 3 | 211–225 |
+| Python | 378 ± 15 | 395 ± 10 | 399 ± 12 | 138 ± 4 | 103-104 |
+| Java | 468 ± 13 | 488 ± 7 | 469 ± 14 | 163 ± 5 | 331-334 |
+| JavaScript | 567 ± 5 | 576 ± 2 | 572 ± 8 | 198 ± 3 | 211-225 |
 
 <p class="caption">Tabla 1. Escritura de los 400 libros (139 MB) desde la caché local, 5 repeticiones.</p>
 
@@ -305,11 +305,11 @@ y escribir unos 350 KB por libro, así que la diferencia tiene que venir del pro
 texto y de lo que cuesta cada llamada al sistema de ficheros en cada entorno.
 
 Cuando los libros llegan por HTTP desde el espejo local, el rendimiento baja entre un 23 y un 34 %
-(Python 292–300, Java 318–328 y JavaScript 395–413 libros/s), que es el coste del cliente HTTP de cada
+(Python 292-300, Java 318-328 y JavaScript 395-413 libros/s), que es el coste del cliente HTTP de cada
 lenguaje. Descargando de verdad de gutenberg.org (10 libros, una sola ejecución, solo orientativo) se
-obtienen entre 2,6 y 3,8 libros/s, unas cien veces menos. Es decir, un crawler real está limitado por
-la red y por la pausa que hay que dejar entre peticiones, no por el datalake, así que la escritura no
-sirve para elegir layout.
+obtienen entre 2,6 y 3,8 libros/s, unas cien veces menos. Es decir, en un crawler real lo que limita es
+la red y la pausa que hay que dejar entre peticiones, y el datalake apenas influye, así que la velocidad
+de escritura no sirve para elegir layout.
 
 ### Localizar un libro
 
@@ -320,7 +320,7 @@ Con la ruta calculada (`book` y `range`) o con el registro ya cargado (`time`) l
 entre 4 y 13 µs, que es básicamente comprobar que los dos ficheros existen. La diferencia es que `time`
 tiene que leer antes el registro, que con 400 libros tarda entre 0,1 y 0,5 ms y crece con el número de
 libros, y que si el registro se pierde o se queda desfasado ya no hay forma directa de encontrar nada.
-Sin ninguna ayuda hay que recorrer el árbol: 1,5–2,3 ms en `time`, 1,9–2,7 ms en `range` y 5,9–7,5 ms
+Sin ninguna ayuda hay que recorrer el árbol: 1,5-2,3 ms en `time`, 1,9-2,7 ms en `range` y 5,9-7,5 ms
 en `book`, que es el más lento porque tiene que abrir 400 carpetas, una por libro.
 
 ### Detectar libros nuevos
@@ -331,8 +331,8 @@ en `book`, que es el más lento porque tiene que abrir 400 carpetas, una por lib
 | layout | ficheros de control | escaneo completo | escaneo podado (solo time) |
 |---|---|---|---|
 | time | 0,26 ± 0,11 | 1,71 ± 0,28 | 0,21 ± 0,05 |
-| book | 0,44 ± 0,23 | 6,38 ± 0,64 | – |
-| range | 0,35 ± 0,21 | 2,17 ± 0,28 | – |
+| book | 0,44 ± 0,23 | 6,38 ± 0,64 | - |
+| range | 0,35 ± 0,21 | 2,17 ± 0,28 | - |
 
 <p class="caption">Tabla 2. Detección de los 10 libros nuevos con 400 en el datalake (ms, media de los tres lenguajes). Todas las ejecuciones encontraron exactamente los 10 libros.</p>
 
@@ -350,10 +350,10 @@ ya resuelve este problema más rápido y sin esas condiciones.
 |---|---|---|---|---|
 | time | entre los dos renombrados | 0/9 (1 huérfano, 1 temporal) | 9/9 | 0,7 / 8,9 / 2,4 |
 | time | antes de anotar en el control | 0/9 (1 duplicado) | 9/9 | 0,8 / 9,1 / 1,7 |
-| book | las dos | 9/9 | 9/9 | 1,0–1,2 / 4,9–5,4 / 1,9–2,1 |
-| range | las dos | 9/9 | 9/9 | 0,9–1,0 / 4,9–5,6 / 1,9–2,0 |
+| book | las dos | 9/9 | 9/9 | 1,0-1,2 / 4,9-5,4 / 1,9-2,1 |
+| range | las dos | 9/9 | 9/9 | 0,9-1,0 / 4,9-5,6 / 1,9-2,0 |
 
-<p class="caption">Tabla 3. Ejecuciones que terminan con el datalake consistente (3 lenguajes × 3 repeticiones) al cortar el proceso en el libro 51 de 100 y reanudar 24 horas después.</p>
+<p class="caption">Tabla 3. Ejecuciones que terminan con el datalake consistente (3 lenguajes x 3 repeticiones) al cortar el proceso en el libro 51 de 100 y reanudar 24 horas después.</p>
 
 Este es el resultado que más diferencia los layouts. En `book` y `range` la ruta de un libro depende solo
 de su identificador, así que al reanudar el libro cortado se vuelve a escribir en el mismo sitio y
@@ -377,7 +377,7 @@ Se elige **`range`**. Localiza un libro con una ruta calculada, sin registro que
 solo después de una caída; tiene pocas carpetas (75 frente a las 400 de `book`, y con el catálogo
 completo de unos 75 000 libros serían 75 carpetas de 1000 libros frente a 75 000) y su escaneo es casi
 tan barato como el de `time`. `book` es igual de robusto pero escala peor en número de carpetas, y `time`
-solo gana en la detección podada, que la capa de control ya cubre. La fase 2 usa este mismo layout.
+solo gana en la detección podada, que la capa de control ya cubre. Es el layout que se usará también en la fase 2.
 
 ## 4.2. Índice invertido
 
@@ -410,9 +410,9 @@ lenguajes y las cuatro estructuras.
 | hier | Python | 73,38 ± 0,75 | 25,66 | 47,72 | 3,6 | 0,133 | 0,188 | 2163 | 332 ± 6 |
 | hier | Java | 43,17 ± 0,92 | 2,80 | 40,37 | 2,6 | 0,150 | 0,393 | 2163 | 941 ± 9 |
 | hier | JavaScript | 45,01 ± 0,74 | 4,50 | 40,51 | 2,3 | 0,113 | 0,167 | 2163 | 657 ± 31 |
-| mongo | Python | 27,95 ± 0,20 | 25,79 | 2,16 | – | 0,268 | 0,346 | 29,1 | 374 + 205 (mongod) |
-| mongo | Java | 5,12 ± 0,24 | 2,74 | 2,38 | – | 0,535 | 0,942 | 31,7 | 1090 + 218 (mongod) |
-| mongo | JavaScript | 6,06 ± 0,25 | 4,14 | 1,92 | – | 0,423 | 0,549 | 29,1 | 812 + 244 (mongod) |
+| mongo | Python | 27,95 ± 0,20 | 25,79 | 2,16 | - | 0,268 | 0,346 | 29,1 | 374 + 205 (mongod) |
+| mongo | Java | 5,12 ± 0,24 | 2,74 | 2,38 | - | 0,535 | 0,942 | 31,7 | 1090 + 218 (mongod) |
+| mongo | JavaScript | 6,06 ± 0,25 | 4,14 | 1,92 | - | 0,423 | 0,549 | 29,1 | 812 + 244 (mongod) |
 | sqlite | Python | 27,65 ± 0,23 | 25,60 | 2,04 | 0,2 | 0,105 | 0,153 | 50,0 | 335 ± 10 |
 | sqlite | Java | 5,20 ± 0,22 | 2,74 | 2,47 | 1,0 | 0,157 | 0,217 | 50,0 | 1021 ± 78 |
 | sqlite | JavaScript | 6,32 ± 0,24 | 4,18 | 2,13 | 0,2 | 0,149 | 0,221 | 50,0 | 703 ± 42 |
@@ -424,37 +424,37 @@ lenguajes y las cuatro estructuras.
 <p class="caption">Figura 5. Tiempo de construcción del índice según el número de libros (escala logarítmica).</p>
 
 **Construcción.** Salvo en `hier`, casi todo el tiempo se va en tokenizar: en Python son 25,7 s de los
-27–28 s totales. Python tokeniza unos 0,5 millones de tokens por segundo, JavaScript unos 3 millones y
+27-28 s totales. Python tokeniza unos 0,5 millones de tokens por segundo, JavaScript unos 3 millones y
 Java hasta 4,7 millones (figura 6). Java va acelerando con el tamaño, seguramente porque el JIT tarda en
 optimizar el bucle del tokenizador, mientras que JavaScript se mantiene estable desde el principio. Guardar el índice
 cuesta poco en JSON (0,3 s en Java y JavaScript, 1,4 s en Python, que serializa más despacio) y unos 2 s
 en MongoDB y SQLite, casi igual en los tres lenguajes porque el trabajo lo hace el motor de la base de
-datos. `hier` es el caso aparte: tiene que crear 528 165 ficheros, uno por término, y tarda 40–48 s
+datos. `hier` es el caso aparte: tiene que crear 528 165 ficheros, uno por término, y tarda 40-48 s
 haga lo que haga el lenguaje, unos 80 µs por fichero, que es lo que cuesta crear un fichero en APFS.
 
 <figure><img src="../benchmarks/results/figures/index_tokenize_rate.png" style="width:56%"></figure>
 <p class="caption">Figura 6. Velocidad del tokenizador (millones de tokens por segundo) según el tamaño del corpus.</p>
 
 **Consultas.** Todas las estructuras responden por debajo de un milisegundo. JSON es la más rápida
-(0,04–0,05 ms) porque el índice está entero en memoria, pero para eso hay que cargarlo antes, y abrir los
-32 MB cuesta entre 350 y 480 ms y bastante memoria. SQLite y `hier` tardan 0,1–0,16 ms (una búsqueda en
-el B-tree o leer un fichero pequeño por término), y MongoDB 0,27–0,54 ms porque cada término es una
+(0,04-0,05 ms) porque el índice está entero en memoria, pero para eso hay que cargarlo antes, y abrir los
+32 MB cuesta entre 350 y 480 ms y bastante memoria. SQLite y `hier` tardan 0,1-0,16 ms (una búsqueda en
+el B-tree o leer un fichero pequeño por término), y MongoDB 0,27-0,54 ms porque cada término es una
 petición TCP al servidor más decodificar BSON. En todas el tiempo sube con el tamaño porque las listas
 de los términos frecuentes son más largas.
 
 <figure><img src="../benchmarks/results/figures/index_query_p50.png" style="width:100%"></figure>
 <p class="caption">Figura 7. Mediana del tiempo por consulta según el número de libros (escala logarítmica).</p>
 
-**Disco.** JSON y MongoDB ocupan lo mismo (29–32 MB; MongoDB comprime con snappy), SQLite algo más
+**Disco.** JSON y MongoDB ocupan lo mismo (29-32 MB; MongoDB comprime con snappy), SQLite algo más
 (50 MB, porque repite el término en cada fila y añade las páginas del B-tree) y `hier` 2,16 GB. Los
 ficheros de `hier` tienen de media unas pocas decenas de bytes, pero cada uno ocupa como mínimo un
 bloque de 4 KB, así que el índice ocupa 67 veces más que el JSON. Con el catálogo completo se notaría
 también en el número de inodos.
 
-**Memoria.** El pico depende sobre todo del lenguaje: 330–500 MB en Python, 660–840 MB en JavaScript y
-940–1090 MB en Java, que con un heap de hasta 3 GB recoge basura tarde. Dentro de cada lenguaje, JSON es
+**Memoria.** El pico depende sobre todo del lenguaje: 330-500 MB en Python, 660-840 MB en JavaScript y
+940-1090 MB en Java, que con un heap de hasta 3 GB recoge basura tarde. Dentro de cada lenguaje, JSON es
 la que más usa, porque además del índice en memoria genera el texto completo antes de escribirlo.
-MongoDB suma otros 200–250 MB del proceso `mongod`.
+MongoDB suma otros 200-250 MB del proceso `mongod`.
 
 <figure><img src="../benchmarks/results/figures/index_disk.png" style="width:56%"></figure>
 <p class="caption">Figura 8. Espacio en disco del índice según el número de libros (escala logarítmica, igual en los tres lenguajes salvo pequeñas diferencias de MongoDB).</p>
@@ -470,11 +470,11 @@ MongoDB suma otros 200–250 MB del proceso `mongod`.
 
 <p class="caption">Tabla 6. Coste de añadir 10 libros a un índice que ya tiene n libros, en ms por cada 1000 términos distintos de los libros añadidos.</p>
 
-Esta medida es la que más importa para la fase 2, donde los libros llegan de uno en uno. En JSON hay que
+Esta medida es la que más importa para la fase 2, donde los libros irán llegando de uno en uno. En JSON hay que
 cargar, fusionar y reescribir el fichero entero, así que el coste crece con el tamaño del índice: con
 200 libros Python ya tarda 126 ms por cada 1000 términos, y un libro tiene de media unos 7000 términos distintos. `hier`
 tiene un coste más o menos fijo pero alto, porque abre y cierra un fichero por término. MongoDB se
-mantiene en unos 16 ms y SQLite es la más barata (3–9 ms), aunque crece un poco con el tamaño del
+mantiene en unos 16 ms y SQLite es la más barata (3-9 ms), aunque crece un poco con el tamaño del
 B-tree. En estas tres el lenguaje casi no influye.
 
 ## 4.3. Comparación de los lenguajes
@@ -494,7 +494,7 @@ Lo que depende de la CPU, sobre todo tokenizar, es donde más se nota el lenguaj
 veces más lento que JavaScript y Java. Lo que depende del disco o de otro proceso (escribir en el
 datalake, guardar en MongoDB, SQLite o en miles de ficheros) se parece mucho en los tres. Python ha sido
 el más cómodo de escribir y el que menos memoria usa; Java es el más largo pero el más rápido una vez
-caliente, y es el que se reutiliza en la fase 2; JavaScript queda en medio en todo, pero ha sido el que
+caliente, y es el que se podrá reutilizar en la fase 2; JavaScript queda en medio en todo, pero ha sido el que
 más problemas de equivalencia ha dado (orden de las claves numéricas en `JSON.parse`, el prototipo de los
 objetos, cadenas en UTF-16).
 
@@ -526,22 +526,22 @@ La capa de datos funciona igual en los tres lenguajes: con el mismo corpus, las 
 lenguaje y estructura producen los mismos metadatos, el mismo índice y las mismas respuestas. Las
 conclusiones principales son:
 
-- El layout del datalake apenas cambia la velocidad de escritura, pero sí la robustez. `range` y `book`
-  se recuperan solos de una caída porque la ruta solo depende del identificador; `time` necesita un
-  registro y una reconciliación para no dejar duplicados ni huérfanos. Se ha elegido `range` por tener
-  menos carpetas que `book`.
-- La capa de control sale rentable. Detectar los libros pendientes con dos ficheros de texto cuesta
-  menos de medio milisegundo y no depende del layout. Escribirla siempre después del renombrado es lo que
-  hace que nunca se marque como descargado un libro incompleto.
-- El índice tiene que poder crecer de libro en libro. JSON es muy rápido para consultar, pero cada
-  actualización reescribe todo el fichero; `hier` es sencillo, pero un fichero por término ocupa 67 veces
-  más en disco. SQLite tiene el mejor equilibrio y es la que se usa en la fase 2.
-- El lenguaje importa en lo que depende de la CPU, no en lo que depende del disco. Python es entre 6 y 9 veces más lento
-  tokenizando, pero escribe en el datalake, en SQLite o en MongoDB a un ritmo parecido a los otros dos.
-- Para que tres programas den lo mismo no basta con seguir las mismas reglas. Recortes de espacios, orden de cadenas,
-  decodificación de UTF-8 o la versión de Unicode cambiaban la salida sin dar ningún error, y solo se vio
-  al comparar la salida canónica de los tres. Lo mismo pasa con las medidas: por ejemplo, `collStats` de
-  MongoDB devuelve casi 0 si no se fuerza antes un `fsync`.
+- Los tres layouts escriben casi a la misma velocidad, así que la elección depende de lo que pasa cuando
+  algo falla. `range` y `book` se recuperan solos de una caída porque la ruta solo depende del
+  identificador, mientras que `time` necesita un registro y una reconciliación para no dejar duplicados
+  ni huérfanos. Entre `range` y `book` se ha elegido `range` porque crea muchas menos carpetas.
+- Con la capa de control, detectar los libros pendientes cuesta menos de medio milisegundo (son dos
+  ficheros de texto) y no depende del layout. Como solo se escribe después del renombrado, nunca se marca
+  como descargado un libro incompleto.
+- En el índice lo más importante es poder añadir libros de uno en uno. JSON es el más rápido consultando,
+  pero cada actualización reescribe el fichero entero, y `hier` es muy sencillo pero ocupa 67 veces más en
+  disco. SQLite es la que mejor funciona en conjunto y es la que se va a usar en la fase 2.
+- Donde más se nota el lenguaje es en lo que usa CPU: Python es entre 6 y 9 veces más lento tokenizando.
+  Escribiendo en el datalake, en SQLite o en MongoDB va a un ritmo parecido al de los otros dos.
+- Conseguir que los tres programas dieran exactamente lo mismo costó más de lo que esperaba. Recortar
+  espacios, ordenar cadenas o decodificar UTF-8 cambiaba la salida sin dar ningún error, y solo se vio al
+  comparar la salida canónica de los tres. Con las medidas pasó algo parecido: `collStats` de MongoDB
+  devolvía casi 0 hasta que se añadió un `fsync` antes de medir.
 
 Como mejoras quedan:
 
