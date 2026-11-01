@@ -1,0 +1,16 @@
+{
+  "name": "searchengine-stage1",
+  "version": "1.0.0",
+  "description": "Stage 1 del buscador: datalake, datamarts y capa de control (version JavaScript)",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "mongodb": "^6.21.0"
+  }
+}
