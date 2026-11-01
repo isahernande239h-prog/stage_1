@@ -239,6 +239,7 @@ export class Datalake {
     }
 
     if (this.layout === 'time') {
+      fs.mkdirSync(this.root, { recursive: true }); // puede que aun no se haya escrito nada
       const tmp = path.join(this.root, REGISTRY + '.tmp');
       const ids = [...scan.complete.keys()].sort((a, b) => a - b);
       fs.writeFileSync(tmp, ids.map((id) => `${id}\t${scan.complete.get(id)[0]}\n`).join(''));

@@ -134,3 +134,9 @@ test('espacio ocupado', () => {
   assert.equal(stats.dirs, 2);
   assert.equal(stats.bytes, 10);
 });
+
+test('reconciliar time con el datalake todavia vacio', () => {
+  const dir = tmpDir();
+  const lake = new Datalake(path.join(dir, 'lake'), 'time');
+  assert.equal(lake.reconcile(new Control(path.join(dir, 'control'))).temps, 0);
+});
