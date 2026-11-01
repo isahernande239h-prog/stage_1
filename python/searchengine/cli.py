@@ -35,6 +35,9 @@ def build_parser():
     p.add_argument("--data", required=True)
     add_store_args(p)
     p.add_argument("query", nargs="+")
+
+    from .bench import add_parsers
+    add_parsers(sub, add_store_args, LAYOUTS)
     return ap
 
 
@@ -54,3 +57,6 @@ def main(argv=None):
         result = search(args.data, args.store, " ".join(args.query), **store_options(args))
         json.dump(result, sys.stdout, ensure_ascii=False, indent=2)
         print()
+
+    else:
+        args.func(args)
