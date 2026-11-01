@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 
-from .control import Control
+from .control import Control, write_text
 from .datalake import Datalake, SyntheticClock, SimulatedCrash, utc_now
 from .index_stores import open_store, search_ids
 from .metadata import MetadataStore, parse_header
@@ -125,7 +125,7 @@ def cmd_bench_datalake(args):
 
     # 4) detectar los libros nuevos (los ultimos args.new no estan indexados)
     indexed, expected = ids[:-args.new], set(ids[-args.new:])
-    control.indexed_file.write_text("".join(f"{i}\n" for i in indexed), encoding="utf-8")
+    write_text(control.indexed_file, "".join(f"{i}\n" for i in indexed))
 
     t = now()
     found = Control(data / "control").pending()
@@ -263,7 +263,7 @@ def cmd_canonical(args):
     result = {"store": args.store}
     for kind, lines in (("metadata", meta_lines), ("postings", post_lines)):
         text = "".join(line + "\n" for line in lines)
-        Path(f"{out}.{kind}.tsv").write_text(text, encoding="utf-8")
+        write_text(f"{out}.{kind}.tsv", text)
         result[f"{kind}_lines"] = len(lines)
         result[f"{kind}_sha256"] = hashlib.sha256(text.encode("utf-8")).hexdigest()
     emit(result)

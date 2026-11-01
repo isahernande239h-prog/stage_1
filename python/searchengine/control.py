@@ -3,6 +3,11 @@ import os
 from pathlib import Path
 
 
+def write_text(path, text):
+    """Escribe en UTF-8 y con \n tal cual (en modo texto, Windows lo cambiaria por \r\n)."""
+    Path(path).write_bytes(text.encode("utf-8"))
+
+
 def read_lines(path):
     """Lineas completas del fichero. Una ultima linea sin salto se ignora (escritura cortada)."""
     path = Path(path)
@@ -50,11 +55,11 @@ class Control:
 
     def rewrite_downloaded(self, ids):
         tmp = self.downloaded_file.with_suffix(".tmp")
-        tmp.write_text("".join(f"{i}\n" for i in sorted(ids)), encoding="utf-8")
+        write_text(tmp, "".join(f"{i}\n" for i in sorted(ids)))
         os.replace(tmp, self.downloaded_file)
 
     @staticmethod
     def _append(path, line):
         # una sola escritura por linea: si el proceso muere, como mucho queda una linea a medias
-        with open(path, "a", encoding="utf-8") as f:
+        with open(path, "a", encoding="utf-8", newline="") as f:
             f.write(line)

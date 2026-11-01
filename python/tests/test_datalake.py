@@ -110,3 +110,9 @@ def test_storage_stats(tmp_path):
     lake.write_book(2, "hh", "bbb")
     stats = lake.storage_stats()
     assert stats["files"] == 4 and stats["dirs"] == 2 and stats["bytes"] == 10
+
+
+def test_reconcile_time_layout_on_empty_folder(tmp_path):
+    # antes fallaba porque intentaba escribir el registro en una carpeta que aun no existia
+    lake = Datalake(tmp_path / "lake", "time")
+    assert lake.reconcile(Control(tmp_path / "control"))["temps"] == 0

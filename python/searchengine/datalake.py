@@ -3,10 +3,18 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .control import read_lines
+from .control import read_lines, write_text
 
 LAYOUTS = ("time", "book", "range")
 REGISTRY = "_registry.tsv"
+
+
+def allocated_bytes(st):
+    """Bytes que ocupa de verdad un fichero en disco. En Windows no hay st_blocks: se redondea a 4 KiB."""
+    blocks = getattr(st, "st_blocks", None)
+    if blocks is not None:
+        return blocks * 512
+    return -(-st.st_size // 4096) * 4096
 
 
 class SimulatedCrash(Exception):
@@ -89,7 +97,7 @@ class Datalake:
             raise SimulatedCrash("entre renombrados")
         os.replace(header_tmp, header_path)
         if self.layout == "time":
-            with open(self.root / REGISTRY, "a", encoding="utf-8") as f:
+            with open(self.root / REGISTRY, "a", encoding="utf-8", newline="") as f:
                 f.write(f"{book_id}\t{partition}\n")
             if self._registry is not None:
                 self._registry[book_id] = partition
@@ -202,8 +210,9 @@ class Datalake:
                 scan.complete[book_id] = [keep]
 
         if self.layout == "time":
+            self.root.mkdir(parents=True, exist_ok=True)   # puede que aun no se haya escrito nada
             tmp = self.root / (REGISTRY + ".tmp")
-            tmp.write_text("".join(f"{i}\t{p[0]}\n" for i, p in sorted(scan.complete.items())), encoding="utf-8")
+            write_text(tmp, "".join(f"{i}\t{p[0]}\n" for i, p in sorted(scan.complete.items())))
             os.replace(tmp, self.root / REGISTRY)
             self._registry = None
 
@@ -227,7 +236,7 @@ class Datalake:
                 st = os.stat(os.path.join(folder, name))
                 files += 1
                 size += st.st_size
-                allocated += getattr(st, "st_blocks", 0) * 512
+                allocated += allocated_bytes(st)
         registry = self.root / REGISTRY
         aux = registry.stat().st_size if registry.exists() else 0
         return {"files": files, "dirs": dirs, "bytes": size, "allocated_bytes": allocated, "aux_bytes": aux}

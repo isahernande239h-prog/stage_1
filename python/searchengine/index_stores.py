@@ -12,6 +12,8 @@ import os
 import sqlite3
 from pathlib import Path
 
+from .datalake import allocated_bytes
+
 STORES = ("json", "hier", "mongo", "sqlite")
 
 
@@ -28,7 +30,7 @@ class JsonStore:
 
     def _save(self, data):
         tmp = self.path.with_suffix(".tmp")
-        with open(tmp, "w", encoding="utf-8") as f:
+        with open(tmp, "w", encoding="utf-8", newline="") as f:
             json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
         os.replace(tmp, self.path)
 
@@ -118,7 +120,7 @@ class HierStore:
     def write_full(self, index):
         self._make_folders()
         for term, found in index.items():
-            with open(self._path(term), "w", encoding="utf-8") as f:
+            with open(self._path(term), "w", encoding="utf-8", newline="") as f:
                 f.write("".join(f"{b}\t{tf}\n" for b, tf in found.items()))
 
     def open(self):
@@ -126,7 +128,7 @@ class HierStore:
 
     def add_book(self, book_id, tfs):
         for term, tf in tfs.items():
-            with open(self._path(term), "a", encoding="utf-8") as f:
+            with open(self._path(term), "a", encoding="utf-8", newline="") as f:
                 f.write(f"{book_id}\t{tf}\n")
 
     @staticmethod
@@ -152,7 +154,7 @@ class HierStore:
         total = 0
         for folder, _, files in os.walk(self.root):
             for name in files:
-                total += os.stat(os.path.join(folder, name)).st_blocks * 512
+                total += allocated_bytes(os.stat(os.path.join(folder, name)))
         return total
 
     def close(self):
