@@ -1,7 +1,7 @@
-"""Espejo HTTP local de gutenberg.org: sirve /cache/epub/<id>/pg<id>.txt desde la cache.
+"""Local HTTP mirror of gutenberg.org: serves /cache/epub/<id>/pg<id>.txt from the cache.
 
-Sirve para medir la ingesta con el cliente HTTP real de cada lenguaje sin depender de Internet
-ni cargar el servidor de Gutenberg.
+Used to measure ingestion with the real HTTP client of each language without depending on the
+Internet or loading the Gutenberg server.
 
     python benchmarks/mirror_server.py --cache ~/bd_work/raw_cache --port 8765
 """
@@ -49,5 +49,5 @@ if __name__ == "__main__":
     ap.add_argument("--cache", required=True)
     ap.add_argument("--port", type=int, default=8765)
     args = ap.parse_args()
-    print(f"espejo en http://127.0.0.1:{args.port}", flush=True)
+    print(f"mirror at http://127.0.0.1:{args.port}", flush=True)
     serve(args.cache, args.port).serve_forever()

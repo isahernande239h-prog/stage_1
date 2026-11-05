@@ -1,6 +1,6 @@
-Salida canonica: 55 libros en bloque + 5 incrementales
+Canonical output: 55 books in bulk + 5 incremental
 
-lenguaje    estructura  metadatos  postings  sha256 metadatos  sha256 postings
+language    store        metadata  postings  sha256 metadata   sha256 postings
 python      json               60    165479  ac092db044f54e7b  90e018fc23562283
 java        json               60    165479  ac092db044f54e7b  90e018fc23562283
 javascript  json               60    165479  ac092db044f54e7b  90e018fc23562283
@@ -14,4 +14,4 @@ python      sqlite             60    165479  ac092db044f54e7b  90e018fc23562283
 java        sqlite             60    165479  ac092db044f54e7b  90e018fc23562283
 javascript  sqlite             60    165479  ac092db044f54e7b  90e018fc23562283
 
-IDENTICAS en los 12 casos
+IDENTICAL in all 12 cases

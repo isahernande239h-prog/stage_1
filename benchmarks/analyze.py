@@ -1,9 +1,9 @@
-"""Tablas y graficas a partir de los CSV de benchmarks/results/raw/.
+"""Tables and charts from the CSVs in benchmarks/results/raw/.
 
     python benchmarks/analyze.py
 
-Escribe benchmarks/results/tables.md (tablas en markdown, media ± desviacion tipica de las
-repeticiones) y las figuras en benchmarks/results/figures/. El informe usa estas mismas tablas.
+Writes benchmarks/results/tables.md (markdown tables, mean ± standard deviation of the
+repetitions) and the figures in benchmarks/results/figures/. The report uses these same tables.
 """
 import csv
 import statistics
@@ -71,7 +71,7 @@ def mean(rows, key):
 
 
 def ms(rows, key, digits=1):
-    """'media ± sd' como texto."""
+    """'mean ± sd' as text."""
     v = values(rows, key)
     if not v:
         return "-"
@@ -93,13 +93,13 @@ def save(fig, name):
 
 
 def top_legend(fig, ax, ncol):
-    """Leyenda encima de toda la figura (si va dentro de un eje, tight_layout descoloca los paneles)."""
+    """Legend above the whole figure (if it goes inside an axis, tight_layout moves the panels around)."""
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, ncol=ncol, loc="lower center", bbox_to_anchor=(0.5, 1.0), fontsize=8)
 
 
 def bars(ax, groups, series, value, error=None, labels=None):
-    """Barras agrupadas: un grupo por elemento de groups y una barra por serie."""
+    """Grouped bars: one group per item in groups and one bar per series."""
     width = 0.8 / len(series)
     for i, s in enumerate(series):
         xs = [g + (i - (len(series) - 1) / 2) * width for g in range(len(groups))]
@@ -125,9 +125,9 @@ def datalake_section(out):
     by = group(rows, "layout", "lang", "n")
     nmax = max(r["n"] for r in rows)
 
-    out.append(f"### Datalake con {nmax} libros (escritura desde la cache local, localizacion y memoria)\n")
-    out.append(table(["layout", "lenguaje", "libros/s", "MB/s", "lookup directo (µs)", "carga registro (ms)",
-                      "lookup escaneo (ms)", "pico RAM (MB)"],
+    out.append(f"### Datalake with {nmax} books (writing from the local cache, lookup and memory)\n")
+    out.append(table(["layout", "language", "books/s", "MB/s", "direct lookup (µs)", "registry load (ms)",
+                      "scan lookup (ms)", "peak RAM (MB)"],
                      [[lay, LANG_NAME[lang], ms(g, "books_per_s"), ms(g, "mb_per_s"), ms(g, "lookup_direct_us"),
                        ms(g, "registry_load_ms", 2), ms(g, "lookup_scan_ms", 2), ms(g, "peak_rss_mb", 0)]
                       for lay in LAYOUTS for lang in LANGS for g in [by[(lay, lang, nmax)]] if g]))
@@ -135,50 +135,50 @@ def datalake_section(out):
     fig, ax = plt.subplots(figsize=(6.2, 2.8))
     bars(ax, LAYOUTS, LANGS, lambda l, s: mean(by[(l, s, nmax)], "books_per_s"),
          lambda l, s: sd(by[(l, s, nmax)], "books_per_s"), LANG_NAME)
-    ax.set_ylabel("libros por segundo")
+    ax.set_ylabel("books per second")
     ax.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.15))
     save(fig, "datalake_throughput")
 
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 2.8))
     bars(a1, LAYOUTS, LANGS, lambda l, s: mean(by[(l, s, nmax)], "lookup_direct_us"),
          lambda l, s: sd(by[(l, s, nmax)], "lookup_direct_us"), LANG_NAME)
-    a1.set_title("ruta calculada / registro", color=INK, fontsize=9)
-    a1.set_ylabel("µs por libro")
+    a1.set_title("computed path / registry", color=INK, fontsize=9)
+    a1.set_ylabel("µs per book")
     bars(a2, LAYOUTS, LANGS, lambda l, s: mean(by[(l, s, nmax)], "lookup_scan_ms"),
          lambda l, s: sd(by[(l, s, nmax)], "lookup_scan_ms"), LANG_NAME)
-    a2.set_title("recorriendo el arbol", color=INK, fontsize=9)
-    a2.set_ylabel("ms por libro")
+    a2.set_title("walking the tree", color=INK, fontsize=9)
+    a2.set_ylabel("ms per book")
     top_legend(fig, a1, 3)
     save(fig, "datalake_lookup")
 
-    # deteccion de libros nuevos
+    # detecting new books
     sizes = sorted({r["n"] for r in rows})
-    out.append("\n### Deteccion de los 10 libros nuevos (ms, media de los tres lenguajes)\n")
+    out.append("\n### Detecting the 10 new books (ms, mean of the three languages)\n")
     trows = []
     for lay in LAYOUTS:
         for n in sizes:
             g = [r for r in rows if r["layout"] == lay and r["n"] == n]
             trows.append([lay, n, ms(g, "detect_control_ms", 2), ms(g, "detect_scan_ms", 2),
                           ms(g, "detect_pruned_ms", 2) if lay == "time" else "-",
-                          "si" if all(str(r["detect_ok"]) == "True" for r in g) else "NO"])
-    out.append(table(["layout", "libros", "ficheros de control", "escaneo completo", "escaneo podado", "correcto"], trows))
+                          "yes" if all(str(r["detect_ok"]) == "True" for r in g) else "NO"])
+    out.append(table(["layout", "books", "control files", "full scan", "pruned scan", "correct"], trows))
 
     fig, axes = plt.subplots(1, 3, figsize=(8.4, 2.7), sharey=True)
     for ax, lang in zip(axes, LANGS):
-        series = [("control", "detect_control_ms", None)] + [(f"escaneo {l}", "detect_scan_ms", l) for l in LAYOUTS] \
-            + [("escaneo podado time", "detect_pruned_ms", "time")]
+        series = [("control", "detect_control_ms", None)] + [(f"scan {l}", "detect_scan_ms", l) for l in LAYOUTS] \
+            + [("pruned scan time", "detect_pruned_ms", "time")]
         for i, (label, key, lay) in enumerate(series):
             ys = [mean([r for r in rows if r["lang"] == lang and r["n"] == n and (lay is None or r["layout"] == lay)], key)
                   for n in sizes]
             ax.plot(sizes, ys, marker=MARKERS[i], color=COLORS[i], label=label)
         ax.set_title(LANG_NAME[lang], color=INK, fontsize=9)
-        ax.set_xlabel("libros en el datalake")
+        ax.set_xlabel("books in the datalake")
         ax.set_yscale("log")
-    axes[0].set_ylabel("ms (escala log)")
+    axes[0].set_ylabel("ms (log scale)")
     top_legend(fig, axes[0], 5)
     save(fig, "datalake_detection")
 
-    out.append(f"\n### Ocupacion con {nmax} libros (igual en los tres lenguajes)\n")
+    out.append(f"\n### Disk usage with {nmax} books (same in all three languages)\n")
     trows = []
     for lay in LAYOUTS:
         r = by[(lay, "python", nmax)][0]
@@ -186,19 +186,19 @@ def datalake_section(out):
                     for x in by[(lay, lang, nmax)]}) == 1
         trows.append([lay, r["storage_files"], r["storage_dirs"], f"{r['storage_bytes'] / 1e6:.2f}",
                       f"{r['storage_allocated_bytes'] / 1e6:.2f}", r["storage_aux_bytes"], r["control_bytes"],
-                      "si" if same else "NO"])
-    out.append(table(["layout", "ficheros", "directorios", "MB", "MB asignados", "bytes registro", "bytes control",
-                      "igual en los 3"], trows))
+                      "yes" if same else "NO"])
+    out.append(table(["layout", "files", "directories", "MB", "MB allocated", "registry bytes", "control bytes",
+                      "same in all 3"], trows))
 
 
 def recovery_section(out):
     rows = load("recovery")
     if not rows:
         return
-    out.append("\n### Recuperacion: caida durante el libro 51 de 100 y reanudacion 24 h despues\n")
+    out.append("\n### Recovery: crash during book 51 of 100 and resume 24 h later\n")
     trows = []
-    crash_name = {"between_renames": "entre renombrados", "before_control": "antes del control"}
-    mode_name = {"naive": "solo control", "reconcile": "con reconciliacion"}
+    crash_name = {"between_renames": "between renames", "before_control": "before control"}
+    mode_name = {"naive": "control only", "reconcile": "with reconciliation"}
     for lay in LAYOUTS:
         for crash in ("between_renames", "before_control"):
             for mode in ("naive", "reconcile"):
@@ -210,8 +210,8 @@ def recovery_section(out):
                        for lang in LANGS]
                 trows.append([lay, crash_name[crash], mode_name[mode], f"{ok}/{len(g)}",
                               f"{mean(g, 'duplicates'):.1f}", f"{mean(g, 'orphans'):.1f}", f"{mean(g, 'temps'):.1f}", *rec])
-    out.append(table(["layout", "caida", "reanudacion", "consistentes", "duplicados", "huerfanos", "temporales",
-                      "reconciliar Python (ms)", "reconciliar Java (ms)", "reconciliar JS (ms)"], trows))
+    out.append(table(["layout", "crash", "resume", "consistent", "duplicates", "orphans", "temp files",
+                      "reconcile Python (ms)", "reconcile Java (ms)", "reconcile JS (ms)"], trows))
 
 
 def ingest_http_section(out):
@@ -219,22 +219,22 @@ def ingest_http_section(out):
     if not mirror:
         return
     nmax = max(r["n"] for r in dl) if dl else 400
-    out.append("\n### Ingesta con el cliente HTTP de cada lenguaje\n")
+    out.append("\n### Ingestion with the HTTP client of each language\n")
     trows = []
     for lang in LANGS:
         for lay in LAYOUTS:
             g = [r for r in mirror if r["lang"] == lang and r["layout"] == lay]
             cache = [r for r in dl if r["lang"] == lang and r["layout"] == lay and r["n"] == nmax]
             if g:
-                trows.append(["espejo HTTP local", LANG_NAME[lang], lay, g[0]["n"], ms(g, "books_per_s"),
+                trows.append(["local HTTP mirror", LANG_NAME[lang], lay, g[0]["n"], ms(g, "books_per_s"),
                               f"{mean(cache, 'books_per_s'):.1f}" if cache else "-", len(g)])
     for r in live:
-        trows.append(["gutenberg.org (orientativo)", LANG_NAME[r["lang"]], r["layout"], r["n"],
+        trows.append(["gutenberg.org (rough reference)", LANG_NAME[r["lang"]], r["layout"], r["n"],
                       f"{r['books_per_s']:.2f}", "-", 1])
-    out.append(table(["origen", "lenguaje", "layout", "libros", "libros/s", "libros/s desde cache", "reps"], trows))
+    out.append(table(["source", "language", "layout", "books", "books/s", "books/s from cache", "reps"], trows))
 
 
-# ------------------------------------------------------------------ indice
+# ------------------------------------------------------------------ index
 
 def index_section(out):
     rows = load("index")
@@ -244,16 +244,16 @@ def index_section(out):
     nmax = sizes[-1]
     by = group(rows, "store", "lang", "n")
 
-    out.append("\n### Tamano del problema\n")
+    out.append("\n### Problem size\n")
     trows = []
     for n in sizes:
         g = [r for r in rows if r["n"] == n]
         digests = {r["queries_digest"] for r in g}
         trows.append([n, g[0]["tokens"], g[0]["terms"], g[0]["postings"],
-                      "si" if len(digests) == 1 else f"NO ({len(digests)})"])
-    out.append(table(["libros", "tokens", "terminos", "postings", "mismas respuestas en las 12 combinaciones"], trows))
+                      "yes" if len(digests) == 1 else f"NO ({len(digests)})"])
+    out.append(table(["books", "tokens", "terms", "postings", "same answers in all 12 combinations"], trows))
 
-    out.append(f"\n### Indice con {nmax} libros\n")
+    out.append(f"\n### Index with {nmax} books\n")
     trows = []
     for store in STORES:
         for lang in LANGS:
@@ -266,10 +266,10 @@ def index_section(out):
             trows.append([store, LANG_NAME[lang], ms(g, "build_s", 2), ms(g, "tokenize_s", 2), ms(g, "persist_s", 2),
                           ms(g, "open_ms", 1), ms(g, "query_p50_ms", 3), ms(g, "query_p95_ms", 3),
                           f"{mean(g, 'disk_bytes') / 1e6:.1f}", mem])
-    out.append(table(["estructura", "lenguaje", "construccion (s)", "tokenizar (s)", "persistir (s)", "apertura (ms)",
-                      "consulta p50 (ms)", "consulta p95 (ms)", "disco (MB)", "pico RAM (MB)"], trows))
+    out.append(table(["store", "language", "build (s)", "tokenize (s)", "persist (s)", "open (ms)",
+                      "query p50 (ms)", "query p95 (ms)", "disk (MB)", "peak RAM (MB)"], trows))
 
-    out.append("\n### Anadir 10 libros a un indice existente (ms por cada 1000 terminos distintos del libro)\n")
+    out.append("\n### Adding 10 books to an existing index (ms per 1000 distinct terms of the book)\n")
     trows = []
     inc_sizes = [n for n in sizes if mean([r for r in rows if r["n"] == n], "add_books") > 0]
     for store in STORES:
@@ -279,7 +279,7 @@ def index_section(out):
                 g = by[(store, lang, n)]
                 cells.append(f"{1000 * mean(g, 'add_ms') / mean(g, 'add_terms'):.1f}" if g else "-")
             trows.append([store, LANG_NAME[lang], *cells])
-    out.append(table(["estructura", "lenguaje", *[f"n={n}" for n in inc_sizes]], trows))
+    out.append(table(["store", "language", *[f"n={n}" for n in inc_sizes]], trows))
 
     def per_lang(name, key, ylabel, scale=1.0, log=True):
         fig, axes = plt.subplots(1, 3, figsize=(8.4, 2.7), sharey=True)
@@ -288,25 +288,25 @@ def index_section(out):
                 ys = [mean(by[(store, lang, n)], key) * scale for n in sizes]
                 ax.plot(sizes, ys, marker=MARKERS[i], color=COLORS[i], label=store)
             ax.set_title(LANG_NAME[lang], color=INK, fontsize=9)
-            ax.set_xlabel("libros")
+            ax.set_xlabel("books")
             if log:
                 ax.set_yscale("log")
         axes[0].set_ylabel(ylabel)
         top_legend(fig, axes[0], 4)
         save(fig, name)
 
-    per_lang("index_build", "build_s", "segundos (log)")
-    per_lang("index_persist", "persist_s", "segundos (log)")
-    per_lang("index_query_p50", "query_p50_ms", "ms por consulta (log)")
-    per_lang("index_memory", "peak_rss_mb", "MB (pico, log)")
+    per_lang("index_build", "build_s", "seconds (log)")
+    per_lang("index_persist", "persist_s", "seconds (log)")
+    per_lang("index_query_p50", "query_p50_ms", "ms per query (log)")
+    per_lang("index_memory", "peak_rss_mb", "MB (peak, log)")
 
     fig, ax = plt.subplots(figsize=(4.8, 2.8))
     for i, lang in enumerate(LANGS):
         ys = [mean([r for r in rows if r["lang"] == lang and r["n"] == n], "tokens")
               / mean([r for r in rows if r["lang"] == lang and r["n"] == n], "tokenize_s") / 1e6 for n in sizes]
         ax.plot(sizes, ys, marker=MARKERS[i], color=COLORS[i], label=LANG_NAME[lang])
-    ax.set_xlabel("libros")
-    ax.set_ylabel("millones de tokens/s")
+    ax.set_xlabel("books")
+    ax.set_ylabel("millions of tokens/s")
     ax.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.18))
     save(fig, "index_tokenize_rate")
 
@@ -314,22 +314,22 @@ def index_section(out):
     for i, store in enumerate(STORES):
         ys = [mean([r for r in rows if r["store"] == store and r["n"] == n], "disk_bytes") / 1e6 for n in sizes]
         ax.plot(sizes, ys, marker=MARKERS[i], color=COLORS[i], label=store)
-    ax.set_xlabel("libros")
-    ax.set_ylabel("MB en disco (log)")
+    ax.set_xlabel("books")
+    ax.set_ylabel("MB on disk (log)")
     ax.set_yscale("log")
     ax.legend(ncol=4, loc="upper center", bbox_to_anchor=(0.5, 1.18))
     save(fig, "index_disk")
 
 
 def main():
-    out = ["# Resultados de los benchmarks (generado por benchmarks/analyze.py)\n"]
+    out = ["# Benchmark results (generated by benchmarks/analyze.py)\n"]
     datalake_section(out)
     recovery_section(out)
     ingest_http_section(out)
     index_section(out)
     (ROOT / "results" / "tables.md").write_text("\n".join(out) + "\n", encoding="utf-8")
-    print("tablas ->", ROOT / "results" / "tables.md")
-    print("figuras ->", FIG)
+    print("tables ->", ROOT / "results" / "tables.md")
+    print("figures ->", FIG)
 
 
 if __name__ == "__main__":

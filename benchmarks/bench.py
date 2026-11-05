@@ -1,9 +1,9 @@
-"""Orquestador de los benchmarks de la fase 1.
+"""Orchestrator for the stage 1 benchmarks.
 
-Lanza los comandos de benchmark de los tres lenguajes como procesos independientes (cada
-configuracion en un proceso nuevo y con la carpeta de trabajo vacia), mide desde fuera el pico de
-memoria del proceso y guarda una fila por ejecucion en benchmarks/results/raw/<campana>.csv.
-Si se corta, al relanzarlo se salta las ejecuciones que ya estan en el CSV.
+Runs the benchmark commands of the three languages as separate processes (each
+configuration in a new process with an empty work folder), measures the peak memory of the
+process from outside and saves one row per run in benchmarks/results/raw/<campaign>.csv.
+If it gets cut off, running it again skips the runs that are already in the CSV.
 
     python benchmarks/bench.py env
     python benchmarks/bench.py equivalence
@@ -13,7 +13,7 @@ Si se corta, al relanzarlo se salta las ejecuciones que ya estan en el CSV.
     python benchmarks/bench.py live
     python benchmarks/bench.py index --reps 3
 
-Requisitos: el jar de Java compilado, `npm install` hecho en javascript/ y mongod arrancado.
+Requirements: the Java jar built, `npm install` done in javascript/ and mongod running.
 """
 import argparse
 import csv
@@ -61,7 +61,7 @@ def find_mongod():
 
 
 class PeakMemory(threading.Thread):
-    """Muestrea cada 20 ms la memoria residente del proceso (y sus hijos)."""
+    """Samples the resident memory of the process (and its children) every 20 ms."""
 
     def __init__(self, pid, extra=None):
         super().__init__(daemon=True)
@@ -111,7 +111,7 @@ def clean(path):
 
 
 class Campaign:
-    """CSV de una campana. Reescribe el fichero entero en cada fila (son pocos cientos)."""
+    """CSV of one campaign. Rewrites the whole file on every row (there are only a few hundred)."""
 
     def __init__(self, name):
         self.path = RESULTS / "raw" / f"{name}.csv"
@@ -141,7 +141,7 @@ def log(msg):
     print(time.strftime("%H:%M:%S"), msg, flush=True)
 
 
-# ------------------------------------------------------------------ campanas
+# ------------------------------------------------------------------ campaigns
 
 def campaign_datalake(opts):
     camp = Campaign("datalake")
@@ -157,7 +157,7 @@ def campaign_datalake(opts):
                     r = run(lang, ["bench-datalake", "--data", work, "--layout", layout,
                                    "--source", f"cache:{opts.cache}", "--ids", IDS, "--n", n])
                     camp.add(run_id, {"lang": lang, "layout": layout, "n": n, "rep": rep, **r})
-                    log(f"datalake {run_id}: {r['books_per_s']:.0f} libros/s")
+                    log(f"datalake {run_id}: {r['books_per_s']:.0f} books/s")
 
 
 def check_state(work, layout, expected):
@@ -173,7 +173,7 @@ def check_state(work, layout, expected):
 
 
 def campaign_recovery(opts):
-    """Caida durante el libro 51 de 100 y reanudacion 24 h despues, con y sin reconciliacion."""
+    """Crash during book 51 of 100 and resume 24 h later, with and without reconciliation."""
     camp = Campaign("recovery")
     work = opts.work / "recovery"
     expected = [int(x) for x in IDS.read_text().split()][:100]
@@ -195,11 +195,11 @@ def campaign_recovery(opts):
                         state = check_state(work, layout, expected)
                         camp.add(run_id, {"lang": lang, "layout": layout, "crash_at": crash_at, "mode": mode,
                                           "rep": rep, "reconcile_ms": r.get("reconcile_ms"), **state})
-                        log(f"recovery {run_id}: consistente={state['consistent']}")
+                        log(f"recovery {run_id}: consistent={state['consistent']}")
 
 
 def campaign_mirror(opts):
-    """Ingesta pasando por el cliente HTTP de cada lenguaje, contra un espejo local."""
+    """Ingestion through the HTTP client of each language, against a local mirror."""
     camp = Campaign("mirror")
     work = opts.work / "mirror"
     server = serve(opts.cache, MIRROR_PORT)
@@ -215,13 +215,13 @@ def campaign_mirror(opts):
                     r = run(lang, ["ingest", "--data", work, "--layout", layout, "--source",
                                    f"http://127.0.0.1:{MIRROR_PORT}", "--ids", IDS, "--n", 400])
                     camp.add(run_id, {"lang": lang, "layout": layout, "n": 400, "rep": rep, **r})
-                    log(f"mirror {run_id}: {r['books_per_s']:.0f} libros/s")
+                    log(f"mirror {run_id}: {r['books_per_s']:.0f} books/s")
     finally:
         server.shutdown()
 
 
 def campaign_live(opts):
-    """Una sola pasada contra gutenberg.org con 10 libros por lenguaje (solo orientativo)."""
+    """A single pass against gutenberg.org with 10 books per language (just a rough reference)."""
     camp = Campaign("live")
     work = opts.work / "live"
     for lang in opts.langs:
@@ -232,12 +232,12 @@ def campaign_live(opts):
         r = run(lang, ["ingest", "--data", work, "--layout", "range", "--source", "https://www.gutenberg.org",
                        "--ids", IDS, "--n", 10])
         camp.add(run_id, {"lang": lang, "layout": "range", "n": 10, "rep": 0, **r})
-        log(f"live {run_id}: {r['books_per_s']:.2f} libros/s")
+        log(f"live {run_id}: {r['books_per_s']:.2f} books/s")
         time.sleep(5)
 
 
 def prepare_lake(opts):
-    """Datalake comun (layout range) del que leen todas las ejecuciones del indice."""
+    """Shared datalake (range layout) that all the index runs read from."""
     lake = opts.work / "index_lake"
     if not (lake / "control" / "downloaded_books.txt").exists():
         clean(lake)
@@ -276,7 +276,7 @@ def campaign_index(opts):
 
 
 def campaign_equivalence(opts):
-    """Mismos metadatos e indice en los 12 casos (3 lenguajes x 4 estructuras)."""
+    """Same metadata and index in all 12 cases (3 languages x 4 stores)."""
     lake = prepare_lake(opts)
     out = opts.work / "canonical"
     clean(out)
@@ -293,13 +293,13 @@ def campaign_equivalence(opts):
 
     meta = {r["metadata_sha256"] for r in results.values()}
     post = {r["postings_sha256"] for r in results.values()}
-    lines = ["Salida canonica: 55 libros en bloque + 5 incrementales", "",
-             "lenguaje    estructura  metadatos  postings  sha256 metadatos  sha256 postings"]
+    lines = ["Canonical output: 55 books in bulk + 5 incremental", "",
+             "language    store        metadata  postings  sha256 metadata   sha256 postings"]
     for (lang, store), r in results.items():
         lines.append(f"{lang:<11} {store:<11} {r['metadata_lines']:>9}  {r['postings_lines']:>8}  "
                      f"{r['metadata_sha256'][:16]}  {r['postings_sha256'][:16]}")
     ok = len(meta) == 1 and len(post) == 1
-    lines += ["", "IDENTICAS en los 12 casos" if ok else "HAY DIFERENCIAS"]
+    lines += ["", "IDENTICAL in all 12 cases" if ok else "DIFFERENCES FOUND"]
     (RESULTS / "equivalence.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     if not ok:
