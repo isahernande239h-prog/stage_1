@@ -1,4 +1,4 @@
-"""Tokenizador comun: minusculas, secuencias de letras unicode, longitud >= 2 y sin stop words."""
+"""Shared tokenizer: lowercase, runs of unicode letters, length >= 2 and no stop words."""
 import re
 import sys
 import unicodedata
@@ -8,7 +8,7 @@ from .spec import load_stopwords
 
 
 def _letter_class():
-    # El modulo re no tiene \p{L}, asi que la clase se construye con unicodedata.
+    # The re module has no \p{L}, so the class is built with unicodedata.
     ranges = []
     start = None
     for cp in range(sys.maxunicode + 2):

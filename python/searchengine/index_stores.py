@@ -1,11 +1,11 @@
-"""Estructuras del indice invertido. Todas tienen la misma interfaz:
+"""Inverted index stores. They all have the same interface:
 
-    write_full(index)       guarda un indice completo {termino: {book_id: tf}}
-    open()                  deja la estructura lista para consultar
-    add_book(id, tfs)       anade (o sobrescribe) un libro
-    postings(termino)       {book_id: tf}
-    terms()                 recorre (termino, postings) para exportar
-    disk_usage()            bytes en disco
+    write_full(index)       saves a full index {term: {book_id: tf}}
+    open()                  gets the store ready for queries
+    add_book(id, tfs)       adds (or overwrites) a book
+    postings(term)          {book_id: tf}
+    terms()                 goes through (term, postings) for exporting
+    disk_usage()            bytes on disk
 """
 import json
 import os
@@ -25,7 +25,7 @@ class JsonStore:
         self.index = None
 
     def write_full(self, index):
-        self._save(index)   # json convierte las claves int a str
+        self._save(index)   # json turns the int keys into str
         self.index = None
 
     def _save(self, data):
@@ -42,7 +42,7 @@ class JsonStore:
             self.index = {}
 
     def add_book(self, book_id, tfs):
-        # no hay forma de cambiar una parte del fichero: se reescribe entero
+        # there's no way to change just part of the file, so it gets rewritten whole
         if self.index is None:
             self.open()
         key = str(book_id)
@@ -74,8 +74,8 @@ def term_folder(term):
 
 
 def term_filename(term):
-    # a-z tal cual y el resto como %XX: el sistema de ficheros de Windows y el de macOS
-    # no distinguen mayusculas, y terminos griegos como "οδος" y "οδοσ" chocarian
+    # a-z as is and the rest as %XX: the Windows and macOS file systems are
+    # case-insensitive, and Greek terms like "οδος" and "οδοσ" would clash
     out = []
     for ch in term:
         if "a" <= ch <= "z":
@@ -137,7 +137,7 @@ class HierStore:
         with open(path, encoding="utf-8") as f:
             for line in f:
                 book_id, tf = line.split("\t")
-                found[int(book_id)] = int(tf)   # si un libro se repite, gana la ultima linea
+                found[int(book_id)] = int(tf)   # if a book shows up twice, the last line wins
         return found
 
     def postings(self, term):
@@ -150,7 +150,7 @@ class HierStore:
                 yield filename_to_term(entry.name), self._read(entry.path)
 
     def disk_usage(self):
-        # bytes asignados (bloques), que con medio millon de ficheros es lo que cuenta
+        # allocated bytes (blocks), which is what matters with half a million files
         total = 0
         for folder, _, files in os.walk(self.root):
             for name in files:
@@ -201,7 +201,7 @@ class MongoStore:
             yield doc["_id"], {int(k): v for k, v in doc["postings"].items()}
 
     def disk_usage(self):
-        # sin fsync, collStats puede dar casi 0 porque WiredTiger aun no ha escrito el checkpoint
+        # without fsync, collStats can return almost 0 because WiredTiger hasn't written the checkpoint yet
         self.client.admin.command("fsync")
         stats = self.db.command("collStats", "inverted_index")
         return stats["storageSize"] + stats["totalIndexSize"]
@@ -232,7 +232,7 @@ class SqliteStore:
         self._connect()
         with self.conn:
             self.conn.execute("DELETE FROM postings")
-            # en orden de clave se inserta mucho mas rapido en el arbol B
+            # inserting in key order is much faster in the B-tree
             self.conn.executemany("INSERT INTO postings VALUES (?, ?, ?)", (
                 (term, b, index[term][b]) for term in sorted(index) for b in sorted(index[term])))
 
@@ -274,7 +274,7 @@ def open_store(name, datamarts, **options):
 
 
 def search_ids(store, terms):
-    """Libros que tienen todos los terminos, ordenados por id."""
+    """Books that have all the terms, sorted by id."""
     result = None
     for term in dict.fromkeys(terms):
         found = set(store.postings(term))

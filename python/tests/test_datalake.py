@@ -67,8 +67,8 @@ def test_crash_between_renames_and_reconcile(tmp_path, layout):
 def test_reconcile_adds_complete_books_to_control(tmp_path):
     lake = Datalake(tmp_path / "lake", "range")
     control = Control(tmp_path / "control")
-    lake.write_book(7, "h", "b")          # caida antes de anotarlo en el control
-    control.mark_downloaded(99)           # anotado pero sin ficheros
+    lake.write_book(7, "h", "b")          # crash before writing it to control
+    control.mark_downloaded(99)           # written down but no files
     stats = lake.reconcile(control)
     assert control.downloaded() == {7}
     assert stats["added_to_control"] == 1 and stats["removed_from_control"] == 1
@@ -90,7 +90,7 @@ def test_control_ignores_cut_last_line(tmp_path):
     control.mark_downloaded(10)
     control.mark_downloaded(11)
     with open(control.downloaded_file, "a") as f:
-        f.write("12")  # se corto la escritura
+        f.write("12")  # the write got cut off
     assert control.downloaded() == {10, 11}
 
 
@@ -113,6 +113,6 @@ def test_storage_stats(tmp_path):
 
 
 def test_reconcile_time_layout_on_empty_folder(tmp_path):
-    # antes fallaba porque intentaba escribir el registro en una carpeta que aun no existia
+    # this used to fail because it tried to write the registry into a folder that didn't exist yet
     lake = Datalake(tmp_path / "lake", "time")
     assert lake.reconcile(Control(tmp_path / "control"))["temps"] == 0

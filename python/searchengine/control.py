@@ -1,21 +1,21 @@
-"""Ficheros de control: que libros estan descargados, indexados o han fallado."""
+"""Control files: which books are downloaded, indexed or failed."""
 import os
 from pathlib import Path
 
 
 def write_text(path, text):
-    """Escribe en UTF-8 y con \n tal cual (en modo texto, Windows lo cambiaria por \r\n)."""
+    """Writes UTF-8 with \n as is (in text mode Windows would turn it into \r\n)."""
     Path(path).write_bytes(text.encode("utf-8"))
 
 
 def read_lines(path):
-    """Lineas completas del fichero. Una ultima linea sin salto se ignora (escritura cortada)."""
+    """Complete lines of the file. A last line without a newline is ignored (cut-off write)."""
     path = Path(path)
     if not path.exists():
         return []
     text = path.read_text(encoding="utf-8")
     lines = text.split("\n")
-    lines.pop()  # lo que va detras del ultimo \n: vacio o incompleto
+    lines.pop()  # whatever comes after the last \n: empty or incomplete
     return [line for line in lines if line.strip()]
 
 
@@ -41,7 +41,7 @@ class Control:
         return result
 
     def pending(self):
-        """Descargados y todavia sin indexar."""
+        """Downloaded but not indexed yet."""
         return self.downloaded() - self.indexed()
 
     def mark_downloaded(self, book_id):
@@ -60,6 +60,6 @@ class Control:
 
     @staticmethod
     def _append(path, line):
-        # una sola escritura por linea: si el proceso muere, como mucho queda una linea a medias
+        # one write per line: if the process dies, at most one line is left half written
         with open(path, "a", encoding="utf-8", newline="") as f:
             f.write(line)

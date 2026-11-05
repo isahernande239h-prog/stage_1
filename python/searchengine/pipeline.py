@@ -1,4 +1,4 @@
-"""Capa de control: decide en cada paso si indexar un libro pendiente o descargar uno nuevo."""
+"""Control layer: at each step it decides whether to index a pending book or download a new one."""
 import time
 from pathlib import Path
 
@@ -29,21 +29,21 @@ class Pipeline:
     def reconcile(self):
         stats = self.lake.reconcile(self.control)
         if any(stats.values()):
-            self.log(f"[CONTROL] reconciliacion: {stats}")
+            self.log(f"[CONTROL] reconciliation: {stats}")
         return stats
 
     def step(self):
         pending = self.control.pending()
         if pending:
             book_id = min(pending)
-            self.log(f"[CONTROL] indexando libro {book_id}")
+            self.log(f"[CONTROL] indexing book {book_id}")
             self.index_book(book_id)
             return "indexed", book_id
 
         done = self.control.downloaded() | set(self.control.failed())
         for book_id in self.candidates:
             if book_id not in done:
-                self.log(f"[CONTROL] descargando libro {book_id}")
+                self.log(f"[CONTROL] downloading book {book_id}")
                 ok = self.download_book(book_id)
                 return ("downloaded" if ok else "failed"), book_id
         return "idle", None
@@ -53,21 +53,21 @@ class Pipeline:
         for _ in range(steps):
             action, book_id = self.step()
             if action == "idle":
-                self.log("[CONTROL] no queda nada por hacer")
+                self.log("[CONTROL] nothing left to do")
                 break
 
     def download_book(self, book_id):
         if self.delay:
-            time.sleep(self.delay)  # cortesia con gutenberg.org
+            time.sleep(self.delay)  # to go easy on gutenberg.org
         try:
             header, body = split_book(self.source.fetch(book_id))
         except (BookNotFound, NoMarkersError, DownloadError) as e:
             reason = {BookNotFound: "not_found", NoMarkersError: "no_markers"}.get(type(e), "download_error")
             self.control.mark_failed(book_id, reason)
-            self.log(f"[CONTROL] libro {book_id} descartado: {reason}")
+            self.log(f"[CONTROL] book {book_id} skipped: {reason}")
             return False
         self.lake.write_book(book_id, header, body)
-        self.control.mark_downloaded(book_id)  # solo cuando los dos ficheros ya estan en su sitio
+        self.control.mark_downloaded(book_id)  # only once both files are in place
         return True
 
     def index_book(self, book_id):

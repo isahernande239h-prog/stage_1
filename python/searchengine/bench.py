@@ -1,7 +1,7 @@
-"""Comandos de benchmark. Cada uno ejecuta una configuracion y escribe un JSON con las medidas.
+"""Benchmark commands. Each one runs one configuration and writes a JSON with the measurements.
 
-El orquestador (benchmarks/bench.py) los lanza en un proceso nuevo para los tres lenguajes y
-mide desde fuera la memoria del proceso.
+The orchestrator (benchmarks/bench.py) runs them in a new process for the three languages and
+measures the process memory from outside.
 """
 import hashlib
 import json
@@ -39,7 +39,7 @@ def make_clock(args):
 
 
 def ingest_books(lake, control, source, ids, clock, crash_after=None, crash_at=None, delay=0.0):
-    """Descarga, separa y guarda los ids que no esten ya en el control. Devuelve (ingeridos, fallidos, bytes)."""
+    """Downloads, splits and saves the ids that are not in control yet. Returns (ingested, failed, bytes)."""
     done = control.downloaded() | set(control.failed())
     ingested = failed = written = 0
     for book_id in ids:
@@ -56,7 +56,7 @@ def ingest_books(lake, control, source, ids, clock, crash_after=None, crash_at=N
         crash_now = crash_after is not None and ingested == crash_after
         lake.write_book(book_id, header, body, crash_between_renames=crash_now and crash_at == "between_renames")
         if crash_now and crash_at == "before_control":
-            raise SimulatedCrash("antes del control")
+            raise SimulatedCrash("before control")
         control.mark_downloaded(book_id)
         if isinstance(clock, SyntheticClock):
             clock.tick()
@@ -99,13 +99,13 @@ def cmd_bench_datalake(args):
     ids = load_ids(args.ids)[:args.n]
     r = {"layout": args.layout, "n": len(ids)}
 
-    # 1) escritura
+    # 1) writing
     t = now()
     ingested, _, written = ingest_books(lake, control, open_source(args.source), ids, clock)
     seconds = now() - t
     r.update(ingested=ingested, write_s=seconds, books_per_s=ingested / seconds, mb_per_s=written / 1e6 / seconds)
 
-    # 2) localizar un libro con la ruta calculada (o el registro en time)
+    # 2) find a book with the computed path (or the registry for time)
     lake = Datalake(data / "datalake", args.layout)
     t = now()
     if args.layout == "time":
@@ -116,14 +116,14 @@ def cmd_bench_datalake(args):
         assert lake.locate(book_id) is not None
     r["lookup_direct_us"] = (now() - t) / len(ids) * 1e6
 
-    # 3) localizar recorriendo el arbol (sin estructuras auxiliares)
+    # 3) find it by walking the tree (no helper structures)
     sample = ids[::max(1, len(ids) // 10)][:10]
     t = now()
     for book_id in sample:
         assert book_id in lake.scan().complete
     r["lookup_scan_ms"] = (now() - t) / len(sample) * 1000
 
-    # 4) detectar los libros nuevos (los ultimos args.new no estan indexados)
+    # 4) detect the new books (the last args.new are not indexed)
     indexed, expected = ids[:-args.new], set(ids[-args.new:])
     write_text(control.indexed_file, "".join(f"{i}\n" for i in indexed))
 
@@ -145,14 +145,14 @@ def cmd_bench_datalake(args):
         ok = ok and found == expected
     r["detect_ok"] = ok
 
-    # 5) espacio
+    # 5) disk space
     stats = lake.storage_stats()
     r.update({f"storage_{k}": v for k, v in stats.items()})
     r["control_bytes"] = sum(f.stat().st_size for f in (data / "control").iterdir())
     emit(r)
 
 
-# ---------------------------------------------------------------- indice
+# ---------------------------------------------------------------- index
 
 def build_index(lake, ids):
     index = {}
@@ -202,7 +202,7 @@ def cmd_bench_index(args):
     r["open_ms"] = (now() - t) * 1000
 
     queries = [(q, tokenize(q)) for q in load_queries(args.queries)]
-    lines = [f"{q}\t{','.join(map(str, search_ids(store, terms)))}" for q, terms in queries]  # calentamiento
+    lines = [f"{q}\t{','.join(map(str, search_ids(store, terms)))}" for q, terms in queries]  # warm-up
     r["queries_digest"] = hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
     times = []
     for _ in range(args.query_reps):
@@ -227,7 +227,7 @@ def cmd_bench_index(args):
 
 
 def cmd_canonical(args):
-    """Construye metadatos e indice y los exporta en un formato fijo para comparar lenguajes."""
+    """Builds the metadata and the index and exports them in a fixed format to compare languages."""
     datamarts = Path(args.data) / "datamarts"
     datamarts.mkdir(parents=True, exist_ok=True)
     lake = Datalake(args.datalake, "range")
@@ -269,10 +269,10 @@ def cmd_canonical(args):
     emit(result)
 
 
-# ---------------------------------------------------------------- argumentos
+# ---------------------------------------------------------------- arguments
 
 def add_parsers(sub, add_store_args, layouts):
-    p = sub.add_parser("ingest", help="ingesta de una lista de ids (con caida simulada opcional)")
+    p = sub.add_parser("ingest", help="ingest a list of ids (optionally with a simulated crash)")
     p.add_argument("--data", required=True)
     p.add_argument("--layout", choices=layouts, default="range")
     p.add_argument("--source", required=True)
@@ -299,7 +299,7 @@ def add_parsers(sub, add_store_args, layouts):
 
     p = sub.add_parser("bench-index")
     p.add_argument("--data", required=True)
-    p.add_argument("--datalake", required=True, help="datalake ya construido (layout range)")
+    p.add_argument("--datalake", required=True, help="already built datalake (range layout)")
     p.add_argument("--ids", required=True)
     p.add_argument("--n", type=int, required=True)
     p.add_argument("--add", type=int, default=10)

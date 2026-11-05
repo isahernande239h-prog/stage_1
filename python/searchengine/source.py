@@ -1,11 +1,11 @@
-"""Lectura de libros: de gutenberg.org (o un espejo con las mismas URLs) o de una cache local."""
+"""Reading books: from gutenberg.org (or a mirror with the same URLs) or from a local cache."""
 import time
 from pathlib import Path
 
 import requests
 
 DEFAULT_BASE = "https://www.gutenberg.org"
-USER_AGENT = "ulpgc-bigdata-stage1/1.0 (proyecto de clase)"
+USER_AGENT = "ulpgc-bigdata-stage1/1.0 (class project)"
 ATTEMPTS = 3
 
 
@@ -28,7 +28,7 @@ class HttpSource:
     def __init__(self, base=DEFAULT_BASE):
         self.base = base.rstrip("/")
         self.session = requests.Session()
-        # sin compresion para poder comparar Content-Length con lo recibido
+        # no compression, so we can compare Content-Length with what we got
         self.session.headers.update({"User-Agent": USER_AGENT, "Accept-Encoding": "identity"})
 
     def url(self, book_id):
@@ -41,7 +41,7 @@ class HttpSource:
         last_error = None
         for attempt in range(ATTEMPTS):
             if attempt > 0:
-                time.sleep(2 ** (attempt - 1))  # 1 s y luego 2 s
+                time.sleep(2 ** (attempt - 1))  # 1 s and then 2 s
             try:
                 resp = self.session.get(self.url(book_id), timeout=(10, 30))
             except requests.RequestException as e:
@@ -63,7 +63,7 @@ class HttpSource:
 
 
 class CacheSource:
-    """Lee pg<id>.txt de una carpeta. Sirve para repetir benchmarks sin volver a descargar."""
+    """Reads pg<id>.txt from a folder. Handy for repeating benchmarks without downloading again."""
 
     def __init__(self, folder):
         self.folder = Path(folder)

@@ -1,11 +1,11 @@
 import re
 
-# Los marcadores cambian un poco entre libros (THE/THIS, EBOOK/E-BOOK, con o sin espacio
-# despues de los asteriscos), por eso no se busca la cadena exacta del enunciado.
+# The markers change a bit between books (THE/THIS, EBOOK/E-BOOK, with or without a space
+# after the asterisks), so we don't look for the exact string from the assignment.
 START_RE = re.compile(r"\*\*\*[ \t]*START OF (THE|THIS) PROJECT GUTENBERG E-?BOOK", re.IGNORECASE | re.ASCII)
 END_RE = re.compile(r"\*\*\*[ \t]*END OF (THE|THIS) PROJECT GUTENBERG E-?BOOK", re.IGNORECASE | re.ASCII)
 
-# strip() a secas tambien quita espacios unicode y daria resultados distintos a Java/JS
+# plain strip() also removes unicode spaces and would give different results from Java/JS
 ASCII_WS = " \t\n\r\f\v"
 
 
@@ -18,9 +18,9 @@ def normalize_newlines(text):
 
 
 def split_book(text):
-    """Devuelve (header, body). Lanza NoMarkersError si no estan los dos marcadores."""
+    """Returns (header, body). Raises NoMarkersError if one of the two markers is missing."""
     text = normalize_newlines(text)
-    start_line = None   # (inicio, fin) de la linea de START
+    start_line = None   # (start, end) of the START line
     end_offset = None
     pos = 0
     for line in text.split("\n"):

@@ -63,7 +63,7 @@ def test_tokenize_rules():
 
 
 def test_unicode_letters_and_length_in_code_points():
-    # 𝔄 es una letra fuera del BMP: cuenta como un caracter
+    # 𝔄 is a letter outside the BMP: it counts as one character
     assert tokenize("𝔄𝔅 𝔄") == ["𝔄𝔅"]
 
 

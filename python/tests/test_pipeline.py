@@ -27,7 +27,7 @@ def test_control_loop_downloads_then_indexes(tmp_path):
                     candidates=[1, 2, 3, 4], delay=0, log=logs.append)
 
     assert pipe.step() == ("downloaded", 1)
-    assert pipe.step() == ("indexed", 1)      # primero se indexa lo pendiente
+    assert pipe.step() == ("indexed", 1)      # pending books get indexed first
     assert pipe.step() == ("downloaded", 2)
     assert pipe.step() == ("indexed", 2)
     assert pipe.step() == ("failed", 3)

@@ -1,7 +1,7 @@
-"""Descarga una vez el corpus de los benchmarks a una cache local.
+"""Downloads the benchmark corpus once into a local cache.
 
-Los ids se sacan al azar (semilla fija) de 1..75000 y se guardan los primeros que existen y
-tienen marcadores START/END. Se espera 1 s entre peticiones para no cargar el servidor.
+The ids are picked at random (fixed seed) from 1..75000 and it keeps the first ones that exist and
+have START/END markers. It waits 1 s between requests so it doesn't overload the server.
 
     python scripts/download_corpus.py --cache ~/bd_work/raw_cache --count 400
 """
@@ -59,10 +59,10 @@ def main():
             path.write_bytes(raw)
         valid.append(book_id)
         if len(valid) % 25 == 0:
-            print(f"{len(valid)} libros", flush=True)
+            print(f"{len(valid)} books", flush=True)
 
     Path(args.out).write_text("".join(f"{i}\n" for i in valid), encoding="utf-8")
-    print(f"validos: {len(valid)}  descartados: {len(skipped)}")
+    print(f"valid: {len(valid)}  skipped: {len(skipped)}")
     for book_id, reason in skipped:
         print(f"  {book_id}\t{reason}")
 

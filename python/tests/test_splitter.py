@@ -50,4 +50,4 @@ def test_only_ascii_whitespace_is_trimmed():
 
 
 def test_decode_removes_bom():
-    assert decode("﻿hola".encode("utf-8")) == "hola"
+    assert decode("﻿hello".encode("utf-8")) == "hello"

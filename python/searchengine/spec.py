@@ -1,4 +1,4 @@
-"""Acceso a los ficheros compartidos de spec/ (los mismos para los tres lenguajes)."""
+"""Access to the shared files in spec/ (the same ones for all three languages)."""
 import os
 from pathlib import Path
 

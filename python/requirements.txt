@@ -1,6 +1,6 @@
 requests>=2.31
 pymongo>=4.6
 pytest>=8.0
-# para generar el informe
+# for building the report
 markdown>=3.5
 websocket-client>=1.7

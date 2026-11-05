@@ -1,4 +1,4 @@
-"""Metadatos sacados de la cabecera y guardados en SQLite (datamarts/metadata.db)."""
+"""Metadata taken from the header and stored in SQLite (datamarts/metadata.db)."""
 import re
 import sqlite3
 
@@ -16,7 +16,7 @@ def _clean(value):
 
 
 def header_fields(header):
-    """{nombre en minusculas: [valores]}. Cada valor es una lista de lineas (la primera + continuaciones)."""
+    """{lowercase name: [values]}. Each value is a list of lines (the first one + continuations)."""
     fields = {}
     current = None
     for line in header.split("\n"):

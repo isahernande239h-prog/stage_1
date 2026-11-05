@@ -23,7 +23,7 @@ INDEX = {
 @pytest.fixture(params=STORES)
 def store(request, tmp_path):
     if request.param == "mongo" and not mongo_available():
-        pytest.skip("MongoDB no esta arrancado")
+        pytest.skip("MongoDB is not running")
     s = open_store(request.param, tmp_path / "datamarts", mongo_db="stage1_pytest")
     yield s
     if request.param == "mongo":

@@ -1,4 +1,4 @@
-"""Datalake con tres organizaciones posibles: time, book y range (ver spec/pipeline_spec.md)."""
+"""Datalake with three possible layouts: time, book and range (see spec/pipeline_spec.md)."""
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -10,7 +10,7 @@ REGISTRY = "_registry.tsv"
 
 
 def allocated_bytes(st):
-    """Bytes que ocupa de verdad un fichero en disco. En Windows no hay st_blocks: se redondea a 4 KiB."""
+    """Bytes a file really takes on disk. Windows has no st_blocks, so it rounds up to 4 KiB."""
     blocks = getattr(st, "st_blocks", None)
     if blocks is not None:
         return blocks * 512
@@ -18,7 +18,7 @@ def allocated_bytes(st):
 
 
 class SimulatedCrash(Exception):
-    """Para los experimentos de recuperacion: simula que el proceso muere a mitad."""
+    """For the recovery experiments: pretends the process dies halfway through."""
 
 
 def utc_now():
@@ -26,9 +26,9 @@ def utc_now():
 
 
 class SyntheticClock:
-    """Reloj del benchmark: N libros por hora a partir de una fecha fija.
+    """Benchmark clock: N books per hour starting from a fixed date.
 
-    Con el reloj real todo el benchmark caeria en la misma carpeta horaria.
+    With the real clock the whole benchmark would end up in the same hour folder.
     """
 
     def __init__(self, books_per_hour=10, offset_hours=0):
@@ -45,9 +45,9 @@ class SyntheticClock:
 
 class ScanResult:
     def __init__(self):
-        self.complete = {}   # id -> lista de particiones donde esta completo
-        self.orphans = []    # ficheros sin su pareja
-        self.temps = []      # .tmp que quedaron de una escritura cortada
+        self.complete = {}   # id -> list of partitions where it is complete
+        self.orphans = []    # files without their pair
+        self.temps = []      # .tmp files left from a cut-off write
 
     def ids(self):
         return set(self.complete)
@@ -56,13 +56,13 @@ class ScanResult:
 class Datalake:
     def __init__(self, root, layout="range", clock=utc_now):
         if layout not in LAYOUTS:
-            raise ValueError(f"layout desconocido: {layout}")
+            raise ValueError(f"unknown layout: {layout}")
         self.root = Path(root)
         self.layout = layout
         self.clock = clock
         self._registry = None
 
-    # ---------- rutas ----------
+    # ---------- paths ----------
 
     def partition_for(self, book_id, when=None):
         if self.layout == "time":
@@ -81,10 +81,10 @@ class Datalake:
         header_name, body_name = self.file_names(book_id)
         return folder / header_name, folder / body_name
 
-    # ---------- escritura ----------
+    # ---------- writing ----------
 
     def write_book(self, book_id, header, body, crash_between_renames=False):
-        """Escribe los dos ficheros con tmp + rename. Devuelve la particion usada."""
+        """Writes both files with tmp + rename. Returns the partition used."""
         partition = self.partition_for(book_id)
         header_path, body_path = self.paths(book_id, partition)
         header_path.parent.mkdir(parents=True, exist_ok=True)
@@ -94,7 +94,7 @@ class Datalake:
         header_tmp.write_bytes(header.encode("utf-8"))
         os.replace(body_tmp, body_path)
         if crash_between_renames:
-            raise SimulatedCrash("entre renombrados")
+            raise SimulatedCrash("between renames")
         os.replace(header_tmp, header_path)
         if self.layout == "time":
             with open(self.root / REGISTRY, "a", encoding="utf-8", newline="") as f:
@@ -103,18 +103,18 @@ class Datalake:
                 self._registry[book_id] = partition
         return partition
 
-    # ---------- lectura ----------
+    # ---------- reading ----------
 
     def load_registry(self):
         registry = {}
         for line in read_lines(self.root / REGISTRY):
             book_id, _, partition = line.partition("\t")
-            registry[int(book_id)] = partition  # si se repite, vale la ultima
+            registry[int(book_id)] = partition  # if it shows up twice, the last one wins
         self._registry = registry
         return registry
 
     def locate(self, book_id):
-        """(header, body) de un libro completo, o None."""
+        """(header, body) of a complete book, or None."""
         if self.layout == "time":
             if self._registry is None:
                 self.load_registry()
@@ -131,14 +131,14 @@ class Datalake:
     def read_book(self, book_id):
         found = self.locate(book_id)
         if found is None:
-            raise FileNotFoundError(f"libro {book_id} no esta en el datalake")
+            raise FileNotFoundError(f"book {book_id} is not in the datalake")
         header_path, body_path = found
         return header_path.read_text(encoding="utf-8"), body_path.read_text(encoding="utf-8")
 
     def relative(self, path):
         return path.relative_to(self.root).as_posix()
 
-    # ---------- recorrido completo ----------
+    # ---------- full scan ----------
 
     def _partitions(self, min_partition=None):
         if not self.root.is_dir():
@@ -159,7 +159,7 @@ class Datalake:
                     yield partition, hour.path
 
     def _parse_name(self, partition, name):
-        """(book_id, 'header'|'body') o None si el fichero no es de un libro."""
+        """(book_id, 'header'|'body') or None if the file is not part of a book."""
         if self.layout == "book":
             if name in ("header.txt", "body.txt") and partition.isdigit():
                 return int(partition), name[:-4]
@@ -187,10 +187,10 @@ class Datalake:
                     result.orphans.extend(kinds.values())
         return result
 
-    # ---------- recuperacion ----------
+    # ---------- recovery ----------
 
     def reconcile(self, control):
-        """Deja el datalake y downloaded_books.txt consistentes despues de una caida."""
+        """Leaves the datalake and downloaded_books.txt consistent after a crash."""
         scan = self.scan()
         stats = {"temps": len(scan.temps), "orphans": len(scan.orphans), "duplicates": 0}
         for path in scan.temps + scan.orphans:
@@ -210,7 +210,7 @@ class Datalake:
                 scan.complete[book_id] = [keep]
 
         if self.layout == "time":
-            self.root.mkdir(parents=True, exist_ok=True)   # puede que aun no se haya escrito nada
+            self.root.mkdir(parents=True, exist_ok=True)   # maybe nothing has been written yet
             tmp = self.root / (REGISTRY + ".tmp")
             write_text(tmp, "".join(f"{i}\t{p[0]}\n" for i, p in sorted(scan.complete.items())))
             os.replace(tmp, self.root / REGISTRY)
@@ -224,7 +224,7 @@ class Datalake:
             control.rewrite_downloaded(complete)
         return stats
 
-    # ---------- espacio ocupado ----------
+    # ---------- disk usage ----------
 
     def storage_stats(self):
         files = dirs = size = allocated = 0
