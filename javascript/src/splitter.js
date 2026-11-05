@@ -1,12 +1,12 @@
-// Los marcadores cambian un poco entre libros (THE/THIS, EBOOK/E-BOOK, con o sin espacio
-// despues de los asteriscos), por eso no se busca la cadena exacta del enunciado.
-// Sin el flag u, la i solo junta mayusculas y minusculas ASCII (igual que re.ASCII en python).
+// The markers change a bit between books (THE/THIS, EBOOK/E-BOOK, with or without a space
+// after the asterisks), so we don't look for the exact string from the assignment.
+// Without the u flag, i only matches ASCII upper and lower case (same as re.ASCII in python).
 const START_RE = /^\*\*\*[ \t]*START OF (THE|THIS) PROJECT GUTENBERG E-?BOOK/i;
 const END_RE = /^\*\*\*[ \t]*END OF (THE|THIS) PROJECT GUTENBERG E-?BOOK/i;
 
 export class NoMarkersError extends Error {}
 
-// trim() tambien quita espacios unicode (NBSP...) y daria resultados distintos a python/java
+// trim() also removes unicode spaces (NBSP...) and would give different results from python/java
 export function stripAscii(text) {
   let start = 0;
   let end = text.length;
@@ -16,7 +16,7 @@ export function stripAscii(text) {
 }
 
 function isAsciiSpace(c) {
-  // espacio, \t, \n, \v, \f, \r
+  // space, \t, \n, \v, \f, \r
   return c === 32 || (c >= 9 && c <= 13);
 }
 
@@ -24,13 +24,13 @@ export function normalizeNewlines(text) {
   return text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
 }
 
-// Devuelve [header, body]. Lanza NoMarkersError si no estan los dos marcadores.
+// Returns [header, body]. Throws NoMarkersError if the two markers aren't there.
 export function splitBook(text) {
   text = normalizeNewlines(text);
-  let startLine = null; // [inicio, fin] de la linea de START
+  let startLine = null; // [start, end] of the START line
   let endOffset = null;
   let pos = 0;
-  // solo se separa por \n (el flag m de JS tambien cortaria en U+2028 y U+2029)
+  // split on \n only (the JS m flag would also break on U+2028 and U+2029)
   for (const line of text.split('\n')) {
     const lineEnd = pos + line.length;
     if (startLine === null) {

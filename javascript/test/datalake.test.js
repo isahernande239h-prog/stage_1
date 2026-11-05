@@ -20,7 +20,7 @@ for (const [layout, expected] of [
   ['range', '001000/1342.header.txt'],
   ['time', '20260101/00/1342.header.txt'],
 ]) {
-  test(`rutas en ${layout}`, () => {
+  test(`paths in ${layout}`, () => {
     const lake = new Datalake(tmpDir(), layout, new SyntheticClock());
     lake.writeBook(1342, 'h', 'b');
     const [header, body] = lake.locate(1342);
@@ -29,13 +29,13 @@ for (const [layout, expected] of [
   });
 }
 
-test('el bucket de range tiene seis cifras', () => {
+test('the range bucket has six digits', () => {
   const lake = new Datalake(tmpDir(), 'range');
   assert.equal(lake.partitionFor(5), '000000');
   assert.equal(lake.partitionFor(75999), '075000');
 });
 
-test('el layout time usa el registro', () => {
+test('the time layout uses the registry', () => {
   const root = tmpDir();
   const clock = new SyntheticClock({ booksPerHour: 2 });
   const lake = new Datalake(root, 'time', clock);
@@ -49,7 +49,7 @@ test('el layout time usa el registro', () => {
   assert.equal(fresh.locate(4), null);
 });
 
-test('recorrido completo y recorrido podado', () => {
+test('full scan and pruned scan', () => {
   const clock = new SyntheticClock({ booksPerHour: 1 });
   const lake = new Datalake(tmpDir(), 'time', clock);
   for (let bookId = 1; bookId <= 5; bookId++) {
@@ -61,7 +61,7 @@ test('recorrido completo y recorrido podado', () => {
 });
 
 for (const layout of ['time', 'book', 'range']) {
-  test(`caida entre renombrados y reconciliacion en ${layout}`, () => {
+  test(`crash between renames and reconciliation in ${layout}`, () => {
     const dir = tmpDir();
     const lake = new Datalake(path.join(dir, 'lake'), layout, new SyntheticClock());
     const control = new Control(path.join(dir, 'control'));
@@ -84,19 +84,19 @@ for (const layout of ['time', 'book', 'range']) {
   });
 }
 
-test('la reconciliacion anota en el control los libros completos', () => {
+test('reconciliation adds the complete books to the control', () => {
   const dir = tmpDir();
   const lake = new Datalake(path.join(dir, 'lake'), 'range');
   const control = new Control(path.join(dir, 'control'));
-  lake.writeBook(7, 'h', 'b'); // caida antes de anotarlo en el control
-  control.markDownloaded(99); // anotado pero sin ficheros
+  lake.writeBook(7, 'h', 'b'); // crash before writing it to the control
+  control.markDownloaded(99); // in the control but with no files
   const stats = lake.reconcile(control);
   assert.deepEqual(control.downloaded(), new Set([7]));
   assert.equal(stats.added_to_control, 1);
   assert.equal(stats.removed_from_control, 1);
 });
 
-test('la reconciliacion quita duplicados en time', () => {
+test('reconciliation removes duplicates in time', () => {
   const dir = tmpDir();
   const lake = new Datalake(path.join(dir, 'lake'), 'time', new SyntheticClock());
   lake.writeBook(1, 'h', 'b');
@@ -108,15 +108,15 @@ test('la reconciliacion quita duplicados en time', () => {
   assert.deepEqual(lake.scan().complete.get(1), ['20260102/00']);
 });
 
-test('el control ignora la ultima linea cortada', () => {
+test('the control ignores the cut-off last line', () => {
   const control = new Control(tmpDir());
   control.markDownloaded(10);
   control.markDownloaded(11);
-  fs.appendFileSync(control.downloadedFile, '12'); // se corto la escritura
+  fs.appendFileSync(control.downloadedFile, '12'); // the write got cut off
   assert.deepEqual(control.downloaded(), new Set([10, 11]));
 });
 
-test('pendientes y fallidos', () => {
+test('pending and failed', () => {
   const control = new Control(tmpDir());
   for (const id of [1, 2, 3]) control.markDownloaded(id);
   control.markIndexed(2);
@@ -125,7 +125,7 @@ test('pendientes y fallidos', () => {
   assert.deepEqual(control.failed(), new Map([[4, 'not_found']]));
 });
 
-test('espacio ocupado', () => {
+test('disk space used', () => {
   const lake = new Datalake(tmpDir(), 'book');
   lake.writeBook(1, 'hh', 'bbb');
   lake.writeBook(2, 'hh', 'bbb');
@@ -135,7 +135,7 @@ test('espacio ocupado', () => {
   assert.equal(stats.bytes, 10);
 });
 
-test('reconciliar time con el datalake todavia vacio', () => {
+test('reconcile time with the datalake still empty', () => {
   const dir = tmpDir();
   const lake = new Datalake(path.join(dir, 'lake'), 'time');
   assert.equal(lake.reconcile(new Control(path.join(dir, 'control'))).temps, 0);

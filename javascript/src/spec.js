@@ -1,11 +1,11 @@
-// Acceso a los ficheros compartidos de spec/ (los mismos para los tres lenguajes).
+// Access to the shared files in spec/ (the same ones for the three languages).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const SPEC_DIR = process.env.STAGE1_SPEC ?? fileURLToPath(new URL('../../spec', import.meta.url));
 
-// los mismos espacios que str.strip() de python (trim() tambien quita el BOM y no quita \x1c-\x1f ni \x85)
+// same whitespace as python's str.strip() (trim() also removes the BOM and doesn't remove \x1c-\x1f or \x85)
 const SPACES = '[\\t\\n\\v\\f\\r\\x1c-\\x20\\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]';
 const STRIP_RE = new RegExp(`^${SPACES}+|${SPACES}+$`, 'g');
 

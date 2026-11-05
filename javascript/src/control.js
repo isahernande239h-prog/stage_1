@@ -1,13 +1,13 @@
-// Ficheros de control: que libros estan descargados, indexados o han fallado.
+// Control files: which books are downloaded, indexed or have failed.
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Lineas completas del fichero. Una ultima linea sin salto se ignora (escritura cortada).
+// Complete lines of the file. A last line without a newline is ignored (cut-off write).
 export function readLines(file) {
   if (!fs.existsSync(file)) return [];
   const text = fs.readFileSync(file, 'utf8').replace(/\r\n?/g, '\n');
   const lines = text.split('\n');
-  lines.pop(); // lo que va detras del ultimo \n: vacio o incompleto
+  lines.pop(); // whatever comes after the last \n: empty or incomplete
   return lines.filter((line) => line.trim() !== '');
 }
 
@@ -28,7 +28,7 @@ export class Control {
     return new Set(readLines(this.indexedFile).map(Number));
   }
 
-  // Map id -> motivo
+  // Map id -> reason
   failed() {
     const result = new Map();
     for (const line of readLines(this.failedFile)) {
@@ -39,7 +39,7 @@ export class Control {
     return result;
   }
 
-  // descargados y todavia sin indexar
+  // downloaded but not indexed yet
   pending() {
     const indexed = this.indexed();
     return new Set([...this.downloaded()].filter((id) => !indexed.has(id)));
@@ -65,7 +65,7 @@ export class Control {
   }
 }
 
-// una sola escritura por linea: si el proceso muere, como mucho queda una linea a medias
+// a single write per line: if the process dies, at most one line is left half written
 function append(file, line) {
   fs.appendFileSync(file, line);
 }

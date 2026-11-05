@@ -1,13 +1,13 @@
-// Estructuras del indice invertido. Todas tienen la misma interfaz:
+// Inverted index structures. They all have the same interface:
 //
-//   writeFull(index)       guarda un indice completo Map termino -> Map book_id -> tf
-//   open()                 deja la estructura lista para consultar
-//   addBook(id, tfs)       anade (o sobrescribe) un libro
-//   postings(termino)      Map book_id -> tf
-//   terms()                recorre [termino, postings] para exportar
-//   diskUsage()            bytes en disco
+//   writeFull(index)       saves a full index Map term -> Map book_id -> tf
+//   open()                 gets the structure ready for queries
+//   addBook(id, tfs)       adds (or overwrites) a book
+//   postings(term)         Map book_id -> tf
+//   terms()                iterates over [term, postings] for exporting
+//   diskUsage()            bytes on disk
 //
-// Las de mongo devuelven promesas, asi que desde fuera siempre se llaman con await.
+// The mongo ones return promises, so from outside they're always called with await.
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -15,8 +15,8 @@ import { DatabaseSync } from 'node:sqlite';
 export const STORES = ['json', 'hier', 'mongo', 'sqlite'];
 export const DEFAULT_MONGO_URI = 'mongodb://127.0.0.1:27017';
 
-// orden de code point (= orden de bytes UTF-8), el que usan sorted() de python y SQLite.
-// El < de JS compara unidades UTF-16 y pondria las letras fuera del BMP antes que U+E000-U+FFFF.
+// code point order (= UTF-8 byte order), the one used by python's sorted() and SQLite.
+// JS < compares UTF-16 units and would put letters outside the BMP before U+E000-U+FFFF.
 export function compareCodePoints(a, b) {
   const n = Math.min(a.length, b.length);
   for (let i = 0; i < n; i++) {
@@ -31,7 +31,7 @@ export function compareCodePoints(a, b) {
 }
 
 function codePointRank(unit) {
-  // los surrogates (letras fuera del BMP) van detras de U+E000-U+FFFF
+  // surrogates (letters outside the BMP) go after U+E000-U+FFFF
   return unit >= 0xe000 ? unit - 0x800 : unit + 0x2000;
 }
 
@@ -39,22 +39,22 @@ function byNumber(a, b) {
   return a - b;
 }
 
-// claves de mongo ("1342") -> Map con ids numericos
+// mongo keys ("1342") -> Map with numeric ids
 function toPostings(obj) {
   const found = new Map();
   for (const key of Object.keys(obj)) found.set(Number(key), obj[key]);
   return found;
 }
 
-// JSON.parse pone las claves que parecen numeros en orden ascendente ("1853" antes que "10004")
-// y python conserva el orden del fichero. Como el formato lo escribimos nosotros
-// ({"termino":{"id":tf,...},...} sin espacios), se lee a mano y el fichero queda igual que en python.
+// JSON.parse puts keys that look like numbers in ascending order ("1853" before "10004")
+// and python keeps the order of the file. Since we write the format ourselves
+// ({"term":{"id":tf,...},...} with no spaces), it's read by hand and the file stays the same as in python.
 function parseIndex(text) {
-  if (text[0] !== '{') throw new Error('inverted_index.json no tiene el formato esperado');
+  if (text[0] !== '{') throw new Error('inverted_index.json does not have the expected format');
   const index = new Map();
   let i = 1;
   while (i < text.length - 1) {
-    const close = text.indexOf('":{', i); // los terminos solo tienen letras, nunca comillas
+    const close = text.indexOf('":{', i); // terms only have letters, never quotes
     const term = JSON.parse(text.slice(i, close + 1));
     const end = text.indexOf('}', close);
     const found = new Map();
@@ -84,7 +84,7 @@ class JsonStore {
     this.index = null;
   }
 
-  // se escribe a trozos: con medio millon de terminos un solo string seria enorme
+  // written in chunks: with half a million terms a single string would be huge
   save(index) {
     const fd = fs.openSync(this.tmp, 'w');
     let chunk = '{';
@@ -105,7 +105,7 @@ class JsonStore {
   }
 
   open() {
-    // un Map y no un objeto: terminos como "constructor" chocarian con el prototipo
+    // a Map and not an object: terms like "constructor" would clash with the prototype
     if (fs.existsSync(this.file)) {
       this.index = parseIndex(fs.readFileSync(this.file, 'utf8'));
     } else {
@@ -114,7 +114,7 @@ class JsonStore {
   }
 
   addBook(bookId, tfs) {
-    // no hay forma de cambiar una parte del fichero: se reescribe entero
+    // there's no way to change part of the file: it gets rewritten whole
     if (this.index === null) this.open();
     for (const [term, tf] of tfs) {
       let found = this.index.get(term);
@@ -156,8 +156,8 @@ export function termFolder(term) {
   return first >= 'a' && first <= 'z' ? first.toUpperCase() : '_';
 }
 
-// a-z tal cual y el resto como %XX: el sistema de ficheros de Windows y el de macOS
-// no distinguen mayusculas, y terminos griegos como "οδος" y "οδοσ" chocarian
+// a-z as is and the rest as %XX: the Windows and macOS file systems
+// are case-insensitive, and greek terms like "οδος" and "οδοσ" would clash
 export function termFilename(term) {
   let name = '';
   for (const ch of term) {
@@ -225,7 +225,7 @@ class HierStore {
     for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
       if (line === '') continue;
       const [bookId, tf] = line.split('\t');
-      found.set(Number(bookId), Number(tf)); // si un libro se repite, gana la ultima linea
+      found.set(Number(bookId), Number(tf)); // if a book shows up twice, the last line wins
     }
     return found;
   }
@@ -243,7 +243,7 @@ class HierStore {
   }
 
   diskUsage() {
-    // bytes asignados (bloques), que con medio millon de ficheros es lo que cuenta
+    // allocated bytes (blocks), which is what matters with half a million files
     let total = 0;
     const walk = (folder) => {
       for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
@@ -272,7 +272,7 @@ class MongoStore {
     await this.coll.drop();
     let batch = [];
     for (const [term, found] of index) {
-      // un Map (y no un objeto) para que los ids queden en el mismo orden que en python
+      // a Map (and not an object) so the ids stay in the same order as in python
       const postings = new Map();
       for (const [bookId, tf] of found) postings.set(String(bookId), tf);
       batch.push({ _id: term, postings });
@@ -306,7 +306,7 @@ class MongoStore {
   }
 
   async diskUsage() {
-    // sin fsync, collStats puede dar casi 0 porque WiredTiger aun no ha escrito el checkpoint
+    // without fsync, collStats can return almost 0 because WiredTiger hasn't written the checkpoint yet
     await this.client.db('admin').command({ fsync: 1 });
     const stats = await this.db.command({ collStats: 'inverted_index' });
     return stats.storageSize + stats.totalIndexSize;
@@ -338,7 +338,7 @@ class SqliteStore {
     }
   }
 
-  // todo dentro de una transaccion (como el "with conn" de python)
+  // everything inside a transaction (like python's "with conn")
   transaction(work) {
     this.db.exec('BEGIN');
     try {
@@ -355,7 +355,7 @@ class SqliteStore {
     const insert = this.db.prepare('INSERT INTO postings VALUES (?, ?, ?)');
     this.transaction(() => {
       this.db.exec('DELETE FROM postings');
-      // en orden de clave se inserta mucho mas rapido en el arbol B
+      // inserting in key order is much faster in the B-tree
       for (const term of [...index.keys()].sort(compareCodePoints)) {
         const found = index.get(term);
         for (const bookId of [...found.keys()].sort(byNumber)) insert.run(term, bookId, found.get(bookId));
@@ -412,14 +412,14 @@ export async function openStore(name, datamarts, { mongoUri = DEFAULT_MONGO_URI,
   if (name === 'hier') return new HierStore(datamarts);
   if (name === 'sqlite') return new SqliteStore(datamarts);
   if (name === 'mongo') {
-    // el driver solo se carga si hace falta (igual que pymongo en python)
+    // the driver is only loaded if needed (same as pymongo in python)
     const { MongoClient } = await import('mongodb');
     return new MongoStore(new MongoClient(mongoUri), mongoDb);
   }
-  throw new Error(`estructura desconocida: ${name}`);
+  throw new Error(`unknown store: ${name}`);
 }
 
-// Libros que tienen todos los terminos, ordenados por id.
+// Books that have all the terms, sorted by id.
 export async function searchIds(store, terms) {
   let result = null;
   for (const term of new Set(terms)) {

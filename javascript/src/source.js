@@ -1,16 +1,16 @@
-// Lectura de libros: de gutenberg.org (o un espejo con las mismas URLs) o de una cache local.
+// Reading books: from gutenberg.org (or a mirror with the same URLs) or from a local cache.
 import fs from 'node:fs';
 import path from 'node:path';
 
 export const DEFAULT_BASE = 'https://www.gutenberg.org';
-export const USER_AGENT = 'ulpgc-bigdata-stage1/1.0 (proyecto de clase)';
+export const USER_AGENT = 'ulpgc-bigdata-stage1/1.0 (class project)';
 const ATTEMPTS = 3;
 
 export class BookNotFound extends Error {}
 export class DownloadError extends Error {}
 
-// con ignoreBOM el decoder no quita el BOM y lo quitamos a mano, como en python
-// (asi un fichero con dos BOM queda igual en los dos lenguajes)
+// with ignoreBOM the decoder doesn't remove the BOM and we remove it by hand, like in python
+// (so a file with two BOMs ends up the same in both languages)
 const decoder = new TextDecoder('utf-8', { ignoreBOM: true });
 
 export function decode(raw) {
@@ -39,12 +39,12 @@ export class HttpSource {
   async fetchRaw(bookId) {
     let lastError = null;
     for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-      if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1)); // 1 s y luego 2 s
+      if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1)); // 1 s and then 2 s
       let resp;
       let raw;
       try {
         resp = await fetch(this.url(bookId), {
-          // sin compresion para poder comparar Content-Length con lo recibido
+          // no compression so we can compare Content-Length with what we got
           headers: { 'User-Agent': USER_AGENT, 'Accept-Encoding': 'identity' },
           signal: AbortSignal.timeout(30000),
         });
@@ -70,7 +70,7 @@ export class HttpSource {
   }
 }
 
-// Lee pg<id>.txt de una carpeta. Sirve para repetir benchmarks sin volver a descargar.
+// Reads pg<id>.txt from a folder. Useful for repeating benchmarks without downloading again.
 export class CacheSource {
   constructor(folder) {
     this.folder = folder;

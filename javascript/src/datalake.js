@@ -1,4 +1,4 @@
-// Datalake con tres organizaciones posibles: time, book y range (ver spec/pipeline_spec.md).
+// Datalake with three possible layouts: time, book and range (see spec/pipeline_spec.md).
 import fs from 'node:fs';
 import path from 'node:path';
 import { readLines } from './control.js';
@@ -7,13 +7,13 @@ export const LAYOUTS = ['time', 'book', 'range'];
 const REGISTRY = '_registry.tsv';
 const HOUR_MS = 3600 * 1000;
 
-// Para los experimentos de recuperacion: simula que el proceso muere a mitad.
+// For the recovery experiments: simulates the process dying halfway through.
 export class SimulatedCrash extends Error {}
 
 export const realClock = { now: () => new Date() };
 
-// Reloj del benchmark: N libros por hora a partir de una fecha fija.
-// Con el reloj real todo el benchmark caeria en la misma carpeta horaria.
+// Benchmark clock: N books per hour starting from a fixed date.
+// With the real clock the whole benchmark would end up in the same hour folder.
 export class SyntheticClock {
   constructor({ booksPerHour = 10, offsetHours = 0 } = {}) {
     this.start = Date.UTC(2026, 0, 1) + offsetHours * HOUR_MS;
@@ -30,7 +30,7 @@ export class SyntheticClock {
   }
 }
 
-// YYYYMMDD/HH en UTC
+// YYYYMMDD/HH in UTC
 function hourPartition(date) {
   const iso = date.toISOString();
   return `${iso.slice(0, 4)}${iso.slice(5, 7)}${iso.slice(8, 10)}/${iso.slice(11, 13)}`;
@@ -55,9 +55,9 @@ const DIGITS = /^[0-9]+$/;
 
 export class ScanResult {
   constructor() {
-    this.complete = new Map(); // id -> lista de particiones donde esta completo
-    this.orphans = []; // ficheros sin su pareja
-    this.temps = []; // .tmp que quedaron de una escritura cortada
+    this.complete = new Map(); // id -> list of partitions where it's complete
+    this.orphans = []; // files without their pair
+    this.temps = []; // .tmp files left over from a cut-off write
   }
 
   ids() {
@@ -67,14 +67,14 @@ export class ScanResult {
 
 export class Datalake {
   constructor(root, layout = 'range', clock = realClock) {
-    if (!LAYOUTS.includes(layout)) throw new Error(`layout desconocido: ${layout}`);
+    if (!LAYOUTS.includes(layout)) throw new Error(`unknown layout: ${layout}`);
     this.root = root;
     this.layout = layout;
     this.clock = clock;
     this.registry = null;
   }
 
-  // rutas
+  // paths
 
   partitionFor(bookId, when = null) {
     if (this.layout === 'time') return hourPartition(when ?? this.clock.now());
@@ -93,9 +93,9 @@ export class Datalake {
     return [path.join(folder, headerName), path.join(folder, bodyName)];
   }
 
-  // escritura
+  // writing
 
-  // Escribe los dos ficheros con tmp + rename. Devuelve la particion usada.
+  // Writes the two files with tmp + rename. Returns the partition used.
   writeBook(bookId, header, body, crashBetweenRenames = false) {
     const partition = this.partitionFor(bookId);
     const [headerPath, bodyPath] = this.paths(bookId, partition);
@@ -105,7 +105,7 @@ export class Datalake {
     fs.writeFileSync(bodyTmp, body);
     fs.writeFileSync(headerTmp, header);
     fs.renameSync(bodyTmp, bodyPath);
-    if (crashBetweenRenames) throw new SimulatedCrash('entre renombrados');
+    if (crashBetweenRenames) throw new SimulatedCrash('between renames');
     fs.renameSync(headerTmp, headerPath);
     if (this.layout === 'time') {
       fs.appendFileSync(path.join(this.root, REGISTRY), `${bookId}\t${partition}\n`);
@@ -114,20 +114,20 @@ export class Datalake {
     return partition;
   }
 
-  // lectura
+  // reading
 
   loadRegistry() {
     const registry = new Map();
     for (const line of readLines(path.join(this.root, REGISTRY))) {
       const tab = line.indexOf('\t');
       const bookId = Number(tab < 0 ? line : line.slice(0, tab));
-      registry.set(bookId, tab < 0 ? '' : line.slice(tab + 1)); // si se repite, vale la ultima
+      registry.set(bookId, tab < 0 ? '' : line.slice(tab + 1)); // if it's repeated, the last one wins
     }
     this.registry = registry;
     return registry;
   }
 
-  // [header, body] de un libro completo, o null
+  // [header, body] of a complete book, or null
   locate(bookId) {
     let partition;
     if (this.layout === 'time') {
@@ -144,7 +144,7 @@ export class Datalake {
 
   readBook(bookId) {
     const found = this.locate(bookId);
-    if (found === null) throw new Error(`libro ${bookId} no esta en el datalake`);
+    if (found === null) throw new Error(`book ${bookId} is not in the datalake`);
     const [headerPath, bodyPath] = found;
     return [fs.readFileSync(headerPath, 'utf8'), fs.readFileSync(bodyPath, 'utf8')];
   }
@@ -153,7 +153,7 @@ export class Datalake {
     return path.relative(this.root, file).split(path.sep).join('/');
   }
 
-  // recorrido completo
+  // full scan
 
   *partitions(minPartition = null) {
     if (!isDir(this.root)) return;
@@ -170,7 +170,7 @@ export class Datalake {
     }
   }
 
-  // [book_id, 'header'|'body'] o null si el fichero no es de un libro
+  // [book_id, 'header'|'body'] or null if the file isn't a book file
   parseName(partition, name) {
     if (this.layout === 'book') {
       if ((name === 'header.txt' || name === 'body.txt') && DIGITS.test(partition)) {
@@ -215,9 +215,9 @@ export class Datalake {
     return result;
   }
 
-  // recuperacion
+  // recovery
 
-  // Deja el datalake y downloaded_books.txt consistentes despues de una caida.
+  // Leaves the datalake and downloaded_books.txt consistent after a crash.
   reconcile(control) {
     const scan = this.scan();
     const stats = { temps: scan.temps.length, orphans: scan.orphans.length, duplicates: 0 };
@@ -239,7 +239,7 @@ export class Datalake {
     }
 
     if (this.layout === 'time') {
-      fs.mkdirSync(this.root, { recursive: true }); // puede que aun no se haya escrito nada
+      fs.mkdirSync(this.root, { recursive: true }); // maybe nothing has been written yet
       const tmp = path.join(this.root, REGISTRY + '.tmp');
       const ids = [...scan.complete.keys()].sort((a, b) => a - b);
       fs.writeFileSync(tmp, ids.map((id) => `${id}\t${scan.complete.get(id)[0]}\n`).join(''));
@@ -255,7 +255,7 @@ export class Datalake {
     return stats;
   }
 
-  // espacio ocupado
+  // disk space used
 
   storageStats() {
     let files = 0;

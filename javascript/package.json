@@ -1,7 +1,7 @@
 {
   "name": "searchengine-stage1",
   "version": "1.0.0",
-  "description": "Stage 1 del buscador: datalake, datamarts y capa de control (version JavaScript)",
+  "description": "Search engine stage 1: datalake, datamarts and control layer (JavaScript version)",
   "type": "module",
   "private": true,
   "engines": {

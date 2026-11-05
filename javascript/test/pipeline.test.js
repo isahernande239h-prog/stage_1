@@ -34,7 +34,7 @@ function makeCache(folder) {
   fs.writeFileSync(path.join(folder, 'pg4.txt'), 'no markers here');
 }
 
-test('el bucle de control descarga y luego indexa', async () => {
+test('the control loop downloads and then indexes', async () => {
   const dir = tmpDir();
   makeCache(path.join(dir, 'cache'));
   const data = path.join(dir, 'data');
@@ -45,7 +45,7 @@ test('el bucle de control descarga y luego indexa', async () => {
   });
 
   assert.deepEqual(await pipe.step(), ['downloaded', 1]);
-  assert.deepEqual(await pipe.step(), ['indexed', 1]); // primero se indexa lo pendiente
+  assert.deepEqual(await pipe.step(), ['indexed', 1]); // pending books get indexed first
   assert.deepEqual(await pipe.step(), ['downloaded', 2]);
   assert.deepEqual(await pipe.step(), ['indexed', 2]);
   assert.deepEqual(await pipe.step(), ['failed', 3]);
@@ -54,8 +54,8 @@ test('el bucle de control descarga y luego indexa', async () => {
   assert.deepEqual(pipe.control.failed(), new Map([[3, 'not_found'], [4, 'no_markers']]));
   assert.deepEqual(pipe.control.downloaded(), new Set([1, 2]));
   assert.deepEqual(pipe.control.indexed(), new Set([1, 2]));
-  assert.equal(logs[0], '[CONTROL] descargando libro 1');
-  assert.ok(logs.includes('[CONTROL] libro 4 descartado: no_markers'));
+  assert.equal(logs[0], '[CONTROL] downloading book 1');
+  assert.ok(logs.includes('[CONTROL] book 4 skipped: no_markers'));
   await pipe.close();
 
   const result = await search(data, 'sqlite', 'the sea');
@@ -67,7 +67,7 @@ test('el bucle de control descarga y luego indexa', async () => {
   assert.equal((await search(data, 'sqlite', 'the of')).total, 0);
 });
 
-test('el pipeline sigue donde lo dejo sin duplicar', async () => {
+test('the pipeline picks up where it left off without duplicating', async () => {
   const dir = tmpDir();
   makeCache(path.join(dir, 'cache'));
   const data = path.join(dir, 'data');
@@ -83,7 +83,7 @@ test('el pipeline sigue donde lo dejo sin duplicar', async () => {
   assert.equal((await search(data, 'json', 'sea')).total, 2);
 });
 
-test('la reconciliacion se anota en el log como en python', async () => {
+test('reconciliation is logged like in python', async () => {
   const dir = tmpDir();
   makeCache(path.join(dir, 'cache'));
   const data = path.join(dir, 'data');
@@ -93,11 +93,11 @@ test('la reconciliacion se anota en el log como en python', async () => {
   const pipe = await Pipeline.create(data, { source: `cache:${path.join(dir, 'cache')}`, candidates: [1], log: (m) => logs.push(m) });
   await pipe.run(0);
   await pipe.close();
-  assert.deepEqual(logs, ["[CONTROL] reconciliacion: {'temps': 0, 'orphans': 0, 'duplicates': 0, "
+  assert.deepEqual(logs, ["[CONTROL] reconciliation: {'temps': 0, 'orphans': 0, 'duplicates': 0, "
     + "'added_to_control': 0, 'removed_from_control': 1}"]);
 });
 
-test('percentiles con interpolacion lineal', () => {
+test('percentiles with linear interpolation', () => {
   assert.equal(percentile([4, 1, 3, 2], 0.5), 2.5);
   assert.equal(percentile([1, 2, 3, 4, 5], 0.95), 4.8);
   assert.equal(percentile([7], 0.95), 7);

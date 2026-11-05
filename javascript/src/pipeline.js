@@ -1,4 +1,4 @@
-// Capa de control: decide en cada paso si indexar un libro pendiente o descargar uno nuevo.
+// Control layer: on each step it decides whether to index a pending book or download a new one.
 import fs from 'node:fs';
 import path from 'node:path';
 import { Control } from './control.js';
@@ -15,7 +15,7 @@ function sleep(ms) {
 }
 
 export class Pipeline {
-  // abrir la estructura del indice puede ser asincrono (mongo), por eso no se hace en el constructor
+  // opening the index structure can be async (mongo), so it's not done in the constructor
   static async create(dataDir, {
     layout = 'range', store = 'sqlite', source = DEFAULT_BASE, candidates = null, delay = 0,
     clock = realClock, log = console.log, mongoUri, mongoDb,
@@ -37,9 +37,9 @@ export class Pipeline {
   reconcile() {
     const stats = this.lake.reconcile(this.control);
     if (Object.values(stats).some((v) => v)) {
-      // mismo formato que el dict de python
+      // same format as the python dict
       const text = Object.entries(stats).map(([k, v]) => `'${k}': ${v}`).join(', ');
-      this.log(`[CONTROL] reconciliacion: {${text}}`);
+      this.log(`[CONTROL] reconciliation: {${text}}`);
     }
     return stats;
   }
@@ -48,7 +48,7 @@ export class Pipeline {
     const pending = this.control.pending();
     if (pending.size > 0) {
       const bookId = [...pending].reduce((a, b) => Math.min(a, b));
-      this.log(`[CONTROL] indexando libro ${bookId}`);
+      this.log(`[CONTROL] indexing book ${bookId}`);
       await this.indexBook(bookId);
       return ['indexed', bookId];
     }
@@ -56,7 +56,7 @@ export class Pipeline {
     const done = this.control.downloaded().union(new Set(this.control.failed().keys()));
     for (const bookId of this.candidates) {
       if (!done.has(bookId)) {
-        this.log(`[CONTROL] descargando libro ${bookId}`);
+        this.log(`[CONTROL] downloading book ${bookId}`);
         const ok = await this.downloadBook(bookId);
         return [ok ? 'downloaded' : 'failed', bookId];
       }
@@ -69,14 +69,14 @@ export class Pipeline {
     for (let i = 0; i < steps; i++) {
       const [action] = await this.step();
       if (action === 'idle') {
-        this.log('[CONTROL] no queda nada por hacer');
+        this.log('[CONTROL] nothing left to do');
         break;
       }
     }
   }
 
   async downloadBook(bookId) {
-    if (this.delay) await sleep(this.delay * 1000); // cortesia con gutenberg.org
+    if (this.delay) await sleep(this.delay * 1000); // be polite to gutenberg.org
     let header;
     let body;
     try {
@@ -88,11 +88,11 @@ export class Pipeline {
       else if (e instanceof DownloadError) reason = 'download_error';
       else throw e;
       this.control.markFailed(bookId, reason);
-      this.log(`[CONTROL] libro ${bookId} descartado: ${reason}`);
+      this.log(`[CONTROL] book ${bookId} skipped: ${reason}`);
       return false;
     }
     this.lake.writeBook(bookId, header, body);
-    this.control.markDownloaded(bookId); // solo cuando los dos ficheros ya estan en su sitio
+    this.control.markDownloaded(bookId); // only once both files are in place
     return true;
   }
 

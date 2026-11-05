@@ -1,4 +1,4 @@
-// Uso: node src/cli.js <comando> [opciones]   (los mismos comandos y opciones que python -m searchengine)
+// Usage: node src/cli.js <command> [options]   (same commands and options as python -m searchengine)
 import { benchCommands } from './bench.js';
 import { LAYOUTS } from './datalake.js';
 import { STORES, DEFAULT_MONGO_URI } from './index_stores.js';
@@ -32,20 +32,20 @@ async function runSearch(args) {
 
 const COMMANDS = {
   pipeline: {
-    help: 'ejecuta pasos de la capa de control',
+    help: 'run steps of the control layer',
     options: {
       data: { required: true },
       layout: { choices: LAYOUTS, default: 'range' },
-      source: { default: DEFAULT_BASE, help: 'URL base o cache:<carpeta>' },
-      candidates: { help: 'fichero con ids candidatos (por defecto spec/corpus_ids.txt)' },
+      source: { default: DEFAULT_BASE, help: 'base URL or cache:<folder>' },
+      candidates: { help: 'file with candidate ids (default: spec/corpus_ids.txt)' },
       steps: { type: 'int', default: 10 },
-      delay: { type: 'float', default: 1.0, help: 'segundos entre descargas' },
+      delay: { type: 'float', default: 1.0, help: 'seconds between downloads' },
       ...STORE_ARGS,
     },
     run: runPipeline,
   },
   search: {
-    help: 'busca libros que contengan todos los terminos',
+    help: 'find books that contain all the terms',
     options: { data: { required: true }, ...STORE_ARGS },
     positional: 'query',
     run: runSearch,
@@ -56,21 +56,21 @@ const COMMANDS = {
 function usage(command) {
   if (!command) {
     const lines = Object.entries(COMMANDS).map(([name, def]) => `  ${name.padEnd(16)}${def.help ?? ''}`);
-    return `uso: node src/cli.js <comando> [opciones]\n\ncomandos:\n${lines.join('\n')}`;
+    return `usage: node src/cli.js <command> [options]\n\ncommands:\n${lines.join('\n')}`;
   }
   const def = COMMANDS[command];
   const lines = Object.entries(def.options).map(([name, opt]) => {
     let text = `  --${name}`;
     if (opt.choices) text += ` {${opt.choices.join(',')}}`;
-    if (opt.required) text += ' (obligatorio)';
-    else if (opt.default !== undefined) text += ` (por defecto ${opt.default})`;
+    if (opt.required) text += ' (required)';
+    else if (opt.default !== undefined) text += ` (default: ${opt.default})`;
     return opt.help ? `${text}  ${opt.help}` : text;
   });
   const positional = def.positional ? ` ${def.positional} [${def.positional} ...]` : '';
-  return `uso: node src/cli.js ${command} [opciones]${positional}\n\nopciones:\n${lines.join('\n')}`;
+  return `usage: node src/cli.js ${command} [options]${positional}\n\noptions:\n${lines.join('\n')}`;
 }
 
-// como argparse: mensaje por stderr y codigo 2
+// like argparse: message on stderr and exit code 2
 function fail(message, command) {
   console.error(`${usage(command)}\n\nerror: ${message}`);
   process.exit(2);
@@ -82,21 +82,21 @@ function camelCase(name) {
 
 function convert(name, opt, value, command) {
   if (opt.choices && !opt.choices.includes(value)) {
-    fail(`--${name}: '${value}' no es valido (opciones: ${opt.choices.join(', ')})`, command);
+    fail(`--${name}: '${value}' is not valid (choices: ${opt.choices.join(', ')})`, command);
   }
   if (opt.type === 'int') {
-    if (!/^\s*[+-]?[0-9]+\s*$/.test(value)) fail(`--${name}: '${value}' no es un entero`, command);
+    if (!/^\s*[+-]?[0-9]+\s*$/.test(value)) fail(`--${name}: '${value}' is not an integer`, command);
     return Number(value);
   }
   if (opt.type === 'float') {
     const number = Number(value);
-    if (value.trim() === '' || Number.isNaN(number)) fail(`--${name}: '${value}' no es un numero`, command);
+    if (value.trim() === '' || Number.isNaN(number)) fail(`--${name}: '${value}' is not a number`, command);
     return number;
   }
   return value;
 }
 
-// Admite "--nombre valor" y "--nombre=valor". Las claves del resultado van en camelCase.
+// Accepts "--name value" and "--name=value". The keys of the result are in camelCase.
 function parseArgs(command, argv) {
   const def = COMMANDS[command];
   const args = { command };
@@ -119,14 +119,14 @@ function parseArgs(command, argv) {
       name = name.slice(0, eq);
     }
     const opt = def.options[name];
-    if (!opt) fail(`opcion desconocida: ${arg}`, command);
+    if (!opt) fail(`unknown option: ${arg}`, command);
     if (opt.type === 'flag') {
-      if (value !== null) fail(`--${name} no lleva valor`, command);
+      if (value !== null) fail(`--${name} does not take a value`, command);
       args[camelCase(name)] = true;
       continue;
     }
     if (value === null) {
-      if (i + 1 >= argv.length) fail(`falta el valor de --${name}`, command);
+      if (i + 1 >= argv.length) fail(`missing value for --${name}`, command);
       value = argv[++i];
     }
     args[camelCase(name)] = convert(name, opt, value, command);
@@ -135,14 +135,14 @@ function parseArgs(command, argv) {
   for (const [name, opt] of Object.entries(def.options)) {
     const key = camelCase(name);
     if (key in args) continue;
-    if (opt.required) fail(`falta la opcion --${name}`, command);
+    if (opt.required) fail(`missing option --${name}`, command);
     args[key] = opt.type === 'flag' ? false : (opt.default ?? null);
   }
   if (def.positional) {
-    if (positionals.length === 0) fail(`falta ${def.positional}`, command);
+    if (positionals.length === 0) fail(`missing ${def.positional}`, command);
     args[def.positional] = positionals;
   } else if (positionals.length > 0) {
-    fail(`argumentos no reconocidos: ${positionals.join(' ')}`, command);
+    fail(`unrecognized arguments: ${positionals.join(' ')}`, command);
   }
   return args;
 }
@@ -153,8 +153,8 @@ async function main(argv) {
     console.log(usage());
     return;
   }
-  if (!command) fail('falta el comando');
-  if (!COMMANDS[command]) fail(`comando desconocido: ${command}`);
+  if (!command) fail('missing command');
+  if (!COMMANDS[command]) fail(`unknown command: ${command}`);
   const args = parseArgs(command, rest);
   await COMMANDS[command].run(args);
 }

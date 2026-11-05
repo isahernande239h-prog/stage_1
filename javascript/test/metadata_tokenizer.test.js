@@ -28,13 +28,13 @@ Credits: Chuck Greif`;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stage1-js-'));
 after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-test('cabecera completa', () => {
+test('full header', () => {
   assert.deepEqual(parseHeader(HEADER), {
     title: 'Pride and Prejudice', author: 'Jane Austen', language: 'en', year: 1813, release_year: 1998,
   });
 });
 
-test('lineas de continuacion', () => {
+test('continuation lines', () => {
   const header = 'Title: The Life and Adventures\n   of Robinson Crusoe\n\n'
     + 'Author: First Author\n        Second Author\n\nLanguage: French and English';
   const meta = parseHeader(header);
@@ -43,24 +43,24 @@ test('lineas de continuacion', () => {
   assert.equal(meta.language, 'fr');
 });
 
-test('los campos que faltan son null', () => {
+test('missing fields are null', () => {
   const meta = parseHeader('Title: Only a title\nLanguage: Klingon');
   assert.equal(meta.author, null);
   assert.equal(meta.year, null);
   assert.equal(meta.language, null);
 });
 
-test('el ano de publicacion ignora el numero de ebook', () => {
+test('the release year ignores the ebook number', () => {
   assert.equal(parseHeader('Release Date: [EBook #1234] March, 2004').release_year, 2004);
 });
 
-test('varios campos author y U+2028 dentro de un valor', () => {
+test('several author fields and U+2028 inside a value', () => {
   const meta = parseHeader('Author: A\nAuthor: B C\nOriginal publication: 1850-1851');
   assert.equal(meta.author, 'A; B C');
   assert.equal(meta.year, 1851);
 });
 
-test('upsert no duplica', () => {
+test("upsert doesn't duplicate", () => {
   const store = new MetadataStore(path.join(dir, 'metadata.db'));
   const meta = parseHeader(HEADER);
   store.upsert(1342, meta, '001000/1342.header.txt', '001000/1342.body.txt');
@@ -73,20 +73,20 @@ test('upsert no duplica', () => {
   store.close();
 });
 
-test('reglas del tokenizador', () => {
+test('tokenizer rules', () => {
   const text = "The Whale! a whale's TALE, café-au-lait 1851 x Δέλτα";
   assert.deepEqual(tokenize(text), ['whale', 'whale', 'tale', 'café', 'au', 'lait', 'δέλτα']);
 });
 
-test('letras unicode y longitud en code points', () => {
-  // 𝔄 es una letra fuera del BMP: cuenta como un caracter
+test('unicode letters and length in code points', () => {
+  // 𝔄 is a letter outside the BMP: it counts as one character
   assert.deepEqual(tokenize('𝔄𝔅 𝔄'), ['𝔄𝔅']);
 });
 
-test('sigma final igual que en python', () => {
+test('final sigma same as in python', () => {
   assert.deepEqual(tokenize('ΟΔΟΣ ΣΑΣ'), ['οδος', 'σας']);
 });
 
-test('frecuencias', () => {
+test('frequencies', () => {
   assert.deepEqual(termFrequencies('sea sea ship the'), new Map([['sea', 2], ['ship', 1]]));
 });

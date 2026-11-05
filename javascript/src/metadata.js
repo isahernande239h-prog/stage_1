@@ -1,8 +1,8 @@
-// Metadatos sacados de la cabecera y guardados en SQLite (datamarts/metadata.db).
+// Metadata taken from the header and stored in SQLite (datamarts/metadata.db).
 import { DatabaseSync } from 'node:sqlite';
 import { loadLanguages } from './spec.js';
 
-// con el flag s el punto tambien coge U+2028 y U+2029, como en python
+// with the s flag the dot also matches U+2028 and U+2029, like in python
 const FIELD_RE = /^([A-Za-z][A-Za-z -]*):[ \t]*(.*)$/s;
 const YEAR_RE = /(?<![0-9])[0-9]{4}(?![0-9])/g;
 const SPACES_RE = /[ \t]+/g;
@@ -17,7 +17,7 @@ function clean(value) {
   return stripSpaceTab(value.replace(SPACES_RE, ' '));
 }
 
-// Map nombre en minusculas -> [valores]. Cada valor es una lista de lineas (la primera + continuaciones).
+// Map lowercase name -> [values]. Each value is a list of lines (the first one + continuations).
 export function headerFields(header) {
   const fields = new Map();
   let current = null;

@@ -1,10 +1,10 @@
-// Tokenizador comun: minusculas, secuencias de letras unicode, longitud >= 2 y sin stop words.
+// Shared tokenizer: lowercase, runs of unicode letters, length >= 2 and no stop words.
 import { loadStopwords } from './spec.js';
 
 const LETTERS = /\p{L}+/gu;
 const STOPWORDS = loadStopwords();
 
-// la longitud se cuenta en code points: una letra fuera del BMP son dos unidades UTF-16
+// length is counted in code points: a letter outside the BMP is two UTF-16 units
 function atLeastTwoCodePoints(token) {
   return token.length > 2 || (token.length === 2 && token.codePointAt(0) <= 0xffff);
 }
@@ -17,7 +17,7 @@ export function tokenize(text, stopwords = STOPWORDS) {
   return tokens;
 }
 
-// Map termino -> veces, en el orden en que aparecen (como Counter)
+// Map term -> count, in the order they appear (like Counter)
 export function termFrequencies(text, stopwords = STOPWORDS) {
   const tfs = new Map();
   for (const token of tokenize(text, stopwords)) tfs.set(token, (tfs.get(token) ?? 0) + 1);

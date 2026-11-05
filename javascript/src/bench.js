@@ -1,7 +1,7 @@
-// Comandos de benchmark. Cada uno ejecuta una configuracion y escribe un JSON con las medidas.
+// Benchmark commands. Each one runs one configuration and writes a JSON with the measurements.
 //
-// El orquestador (benchmarks/bench.py) los lanza en un proceso nuevo para los tres lenguajes y
-// mide desde fuera la memoria del proceso.
+// The orchestrator (benchmarks/bench.py) launches them in a new process for the three languages and
+// measures the process memory from outside.
 import assert from 'node:assert';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -18,7 +18,7 @@ import { tokenize, termFrequencies } from './tokenizer.js';
 
 const CRASH_EXIT = 3;
 
-// segundos, como time.perf_counter()
+// seconds, like time.perf_counter()
 function now() {
   return performance.now() / 1000;
 }
@@ -46,7 +46,7 @@ function makeClock(args) {
   return realClock;
 }
 
-// Descarga, separa y guarda los ids que no esten ya en el control. Devuelve [ingeridos, fallidos, bytes].
+// Downloads, splits and stores the ids that aren't in the control yet. Returns [ingested, failed, bytes].
 export async function ingestBooks(lake, control, source, ids, clock, { crashAfter = null, crashAt = null, delay = 0 } = {}) {
   const done = control.downloaded().union(new Set(control.failed().keys()));
   let ingested = 0;
@@ -67,7 +67,7 @@ export async function ingestBooks(lake, control, source, ids, clock, { crashAfte
     }
     const crashNow = crashAfter !== null && ingested === crashAfter;
     lake.writeBook(bookId, header, body, crashNow && crashAt === 'between_renames');
-    if (crashNow && crashAt === 'before_control') throw new SimulatedCrash('antes del control');
+    if (crashNow && crashAt === 'before_control') throw new SimulatedCrash('before control');
     control.markDownloaded(bookId);
     if (clock instanceof SyntheticClock) clock.tick();
     ingested++;
@@ -119,13 +119,13 @@ async function cmdBenchDatalake(args) {
   const ids = loadIds(args.ids).slice(0, args.n);
   const r = { layout: args.layout, n: ids.length };
 
-  // 1) escritura
+  // 1) writing
   let t = now();
   const [ingested, , written] = await ingestBooks(lake, control, openSource(args.source), ids, clock);
   const seconds = now() - t;
   Object.assign(r, { ingested, write_s: seconds, books_per_s: ingested / seconds, mb_per_s: written / 1e6 / seconds });
 
-  // 2) localizar un libro con la ruta calculada (o el registro en time)
+  // 2) find a book with the computed path (or the registry in time)
   lake = new Datalake(lakeDir, args.layout);
   t = now();
   if (args.layout === 'time') lake.loadRegistry();
@@ -134,14 +134,14 @@ async function cmdBenchDatalake(args) {
   for (const bookId of ids) assert(lake.locate(bookId) !== null);
   r.lookup_direct_us = (now() - t) / ids.length * 1e6;
 
-  // 3) localizar recorriendo el arbol (sin estructuras auxiliares)
+  // 3) find it by walking the tree (no auxiliary structures)
   const step = Math.max(1, Math.floor(ids.length / 10));
   const sample = ids.filter((_, i) => i % step === 0).slice(0, 10);
   t = now();
   for (const bookId of sample) assert(lake.scan().complete.has(bookId));
   r.lookup_scan_ms = (now() - t) / sample.length * 1000;
 
-  // 4) detectar los libros nuevos (los ultimos args.new no estan indexados)
+  // 4) detect the new books (the last args.new aren't indexed)
   const indexed = ids.slice(0, -args.new);
   const expected = new Set(ids.slice(-args.new));
   fs.writeFileSync(control.indexedFile, indexed.map((id) => `${id}\n`).join(''));
@@ -167,14 +167,14 @@ async function cmdBenchDatalake(args) {
   }
   r.detect_ok = ok;
 
-  // 5) espacio
+  // 5) disk space
   for (const [key, value] of Object.entries(lake.storageStats())) r[`storage_${key}`] = value;
   r.control_bytes = fs.readdirSync(controlDir)
     .reduce((sum, name) => sum + fs.statSync(path.join(controlDir, name)).size, 0);
   emit(r);
 }
 
-// ---------------------------------------------------------------- indice
+// ---------------------------------------------------------------- index
 
 export function buildIndex(lake, ids) {
   const index = new Map();
@@ -194,7 +194,7 @@ export function buildIndex(lake, ids) {
   return [index, tokens];
 }
 
-// interpolacion lineal, igual que en python
+// linear interpolation, same as in python
 export function percentile(values, p) {
   values = [...values].sort(byNumber);
   const k = (values.length - 1) * p;
@@ -235,7 +235,7 @@ async function cmdBenchIndex(args) {
 
   const queries = loadQueries(args.queries).map((q) => [q, tokenize(q)]);
   const lines = [];
-  for (const [q, terms] of queries) lines.push(`${q}\t${(await searchIds(store, terms)).join(',')}`); // calentamiento
+  for (const [q, terms] of queries) lines.push(`${q}\t${(await searchIds(store, terms)).join(',')}`); // warm-up
   r.queries_digest = sha256(lines.join('\n'));
   const times = [];
   for (let rep = 0; rep < args.queryReps; rep++) {
@@ -265,7 +265,7 @@ async function cmdBenchIndex(args) {
   emit(r);
 }
 
-// Construye metadatos e indice y los exporta en un formato fijo para comparar lenguajes.
+// Builds metadata and index and exports them in a fixed format to compare languages.
 async function cmdCanonical(args) {
   const datamarts = path.join(args.data, 'datamarts');
   fs.mkdirSync(datamarts, { recursive: true });
@@ -296,7 +296,7 @@ async function cmdCanonical(args) {
     const bookIds = [...found.keys()].sort(byNumber);
     postLines.push(`${term}\t${bookIds.map((b) => `${b}:${found.get(b)}`).join(',')}`);
   }
-  // el sort normal de JS ordena por unidades UTF-16; python ordena por code point
+  // the normal JS sort orders by UTF-16 units; python orders by code point
   metaLines.sort(compareCodePoints);
   postLines.sort(compareCodePoints);
   await store.close();
@@ -312,12 +312,12 @@ async function cmdCanonical(args) {
   emit(result);
 }
 
-// ---------------------------------------------------------------- argumentos
+// ---------------------------------------------------------------- arguments
 
 export function benchCommands(storeArgs, layouts) {
   return {
     ingest: {
-      help: 'ingesta de una lista de ids (con caida simulada opcional)',
+      help: 'ingest a list of ids (optionally with a simulated crash)',
       options: {
         data: { required: true },
         layout: { choices: layouts, default: 'range' },
@@ -349,7 +349,7 @@ export function benchCommands(storeArgs, layouts) {
     'bench-index': {
       options: {
         data: { required: true },
-        datalake: { required: true, help: 'datalake ya construido (layout range)' },
+        datalake: { required: true, help: 'already built datalake (range layout)' },
         ids: { required: true },
         n: { type: 'int', required: true },
         add: { type: 'int', default: 10 },
