@@ -27,11 +27,11 @@ class BenchTest {
         result.put("terms", List.of("sea"));
         result.put("results", List.of(row));
         result.put("empty", List.of());
-        // salida de json.dump(result, indent=2, ensure_ascii=False)
+        // output of json.dump(result, indent=2, ensure_ascii=False)
         assertEquals("{\n  \"terms\": [\n    \"sea\"\n  ],\n  \"results\": [\n    {\n      \"book_id\": 1,\n"
                 + "      \"title\": \"Caf\u00E9 \\\"x\\\"\\t\",\n      \"year\": null\n    }\n  ],\n  \"empty\": []\n}",
                 Json.pretty(result));
-        // salida de json.dump(result) en una linea
+        // output of json.dump(result) on one line
         assertEquals("{\"terms\": [\"sea\"], \"results\": [{\"book_id\": 1, \"title\": \"Caf\\u00e9 \\\"x\\\"\\t\", "
                 + "\"year\": null}], \"empty\": []}", Json.line(result));
     }

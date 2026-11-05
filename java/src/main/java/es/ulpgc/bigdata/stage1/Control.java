@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-/** Ficheros de control: que libros estan descargados, indexados o han fallado. */
+/** Control files: which books are downloaded, indexed or have failed. */
 public class Control {
     final Path folder;
     final Path downloadedFile;
@@ -28,14 +28,14 @@ public class Control {
         failedFile = folder.resolve("failed_books.txt");
     }
 
-    /** Lineas completas del fichero. Una ultima linea sin salto se ignora (escritura cortada). */
+    /** Complete lines of the file. A last line without a newline is ignored (cut-off write). */
     public static List<String> readLines(Path path) throws IOException {
         List<String> result = new ArrayList<>();
         if (!Files.exists(path)) {
             return result;
         }
         String[] lines = FileUtil.readText(path).split("\n", -1);
-        // la ultima posicion es lo que va detras del ultimo \n: vacio o incompleto
+        // the last item is whatever comes after the last \n: empty or incomplete
         for (int i = 0; i < lines.length - 1; i++) {
             if (!lines[i].isBlank()) {
                 result.add(lines[i]);
@@ -65,7 +65,7 @@ public class Control {
         return result;
     }
 
-    /** Descargados y todavia sin indexar. */
+    /** Downloaded but not indexed yet. */
     public Set<Integer> pending() throws IOException {
         Set<Integer> result = downloaded();
         result.removeAll(indexed());

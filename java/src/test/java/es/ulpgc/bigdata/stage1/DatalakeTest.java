@@ -101,8 +101,8 @@ class DatalakeTest {
     void reconcileAddsCompleteBooksToControl() throws Exception {
         Datalake lake = new Datalake(tmp.resolve("lake"), "range");
         Control control = new Control(tmp.resolve("control"));
-        lake.writeBook(7, "h", "b");          // caida antes de anotarlo en el control
-        control.markDownloaded(99);           // anotado pero sin ficheros
+        lake.writeBook(7, "h", "b");          // crash before writing it to the control file
+        control.markDownloaded(99);           // written down but with no files
         Map<String, Integer> stats = lake.reconcile(control);
         assertEquals(Set.of(7), control.downloaded());
         assertEquals(1, stats.get("added_to_control"));
@@ -160,10 +160,10 @@ class DatalakeTest {
     @Test
     void filesAreUtf8WithoutTrailingNewline() throws Exception {
         Datalake lake = new Datalake(tmp, "range");
-        lake.writeBook(3, "T\u00EDtulo", "cuerpo \uD835\uDD04");
+        lake.writeBook(3, "T\u00EDtulo", "body \uD835\uDD04");
         Path[] found = lake.locate(3);
         assertEquals("T\u00EDtulo", new String(Files.readAllBytes(found[0]), StandardCharsets.UTF_8));
-        assertEquals(List.of("T\u00EDtulo", "cuerpo \uD835\uDD04"), List.of(lake.readBook(3)));
+        assertEquals(List.of("T\u00EDtulo", "body \uD835\uDD04"), List.of(lake.readBook(3)));
     }
 
     @Test

@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import org.sqlite.SQLiteJDBCLoader;
 
-/** Tabla postings(term, book_id, tf) con clave (term, book_id) en datamarts/inverted_index.db. */
+/** Table postings(term, book_id, tf) with key (term, book_id) in datamarts/inverted_index.db. */
 public class SqliteStore implements IndexStore {
     static final int BATCH = 10000;
 
@@ -28,8 +28,8 @@ public class SqliteStore implements IndexStore {
 
     public SqliteStore(Path datamarts) throws Exception {
         path = datamarts.resolve("inverted_index.db");
-        // la libreria nativa de SQLite tarda ~0.3 s en cargarse la primera vez; se carga aqui para que no
-        // cuente dentro de writeFull (en Python se carga al hacer import sqlite3)
+        // the native SQLite library takes ~0.3 s to load the first time; it's loaded here so it doesn't
+        // count inside writeFull (in Python it loads on import sqlite3)
         SQLiteJDBCLoader.initialize();
     }
 
@@ -53,7 +53,7 @@ public class SqliteStore implements IndexStore {
         try (Statement st = conn.createStatement();
              PreparedStatement ps = conn.prepareStatement("INSERT INTO postings VALUES (?, ?, ?)")) {
             st.execute("DELETE FROM postings");
-            // en orden de clave se inserta mucho mas rapido en el arbol B
+            // inserting in key order is much faster in the B-tree
             int pending = 0;
             for (String term : terms) {
                 Map<Integer, Integer> found = index.get(term);

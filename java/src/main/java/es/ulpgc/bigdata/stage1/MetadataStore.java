@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Metadatos sacados de la cabecera y guardados en SQLite (datamarts/metadata.db). */
+/** Metadata taken from the header and stored in SQLite (datamarts/metadata.db). */
 public class MetadataStore implements AutoCloseable {
     static final String[] COLUMNS = {"book_id", "title", "author", "language", "year", "release_year", "header_path", "body_path"};
 

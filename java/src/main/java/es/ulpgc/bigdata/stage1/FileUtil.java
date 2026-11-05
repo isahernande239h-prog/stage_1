@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 
-/** Pequenas utilidades de ficheros que usan varias clases. */
+/** Small file helpers used by several classes. */
 final class FileUtil {
     private FileUtil() {
     }
@@ -16,17 +16,17 @@ final class FileUtil {
         return text.replace("\r\n", "\n").replace('\r', '\n');
     }
 
-    /** Como read_text() de Python: UTF-8 y los saltos \r\n y \r pasan a \n. */
+    /** Like Python's read_text(): UTF-8, and \r\n and \r line breaks become \n. */
     static String readText(Path path) throws IOException {
         return normalizeNewlines(Files.readString(path, StandardCharsets.UTF_8));
     }
 
-    /** Anade texto al final con una sola escritura: si el proceso muere, como mucho queda una linea a medias. */
+    /** Appends text with a single write: if the process dies, at most one line is left half written. */
     static void append(Path path, String text) throws IOException {
         Files.write(path, text.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 
-    /** Igual que os.replace: renombra pisando el destino si existe. */
+    /** Same as os.replace: renames, overwriting the target if it exists. */
     static void replace(Path from, Path to) throws IOException {
         Files.move(from, to, StandardCopyOption.ATOMIC_MOVE);
     }
@@ -35,7 +35,7 @@ final class FileUtil {
         return Files.getFileStore(path).getBlockSize();
     }
 
-    /** Bytes asignados en disco. Java no da st_blocks, asi que se redondea al tamano de bloque. */
+    /** Bytes allocated on disk. Java doesn't give st_blocks, so it rounds up to the block size. */
     static long allocated(long size, long blockSize) {
         return (size + blockSize - 1) / blockSize * blockSize;
     }

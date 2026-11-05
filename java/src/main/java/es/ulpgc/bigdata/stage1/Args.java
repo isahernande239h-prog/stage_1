@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Lectura sencilla de "--opcion valor" (o "--opcion=valor"), con los mismos nombres que argparse en Python. */
+/** Simple parsing of "--option value" (or "--option=value"), with the same names as argparse in Python. */
 class Args {
     static final Set<String> FLAGS = Set.of("--reconcile");
 
@@ -100,7 +100,7 @@ class Args {
         return values.containsKey(name);
     }
 
-    /** Se llama despues de leer todas las opciones del comando: lo que sobre es un error, como en argparse. */
+    /** Called after reading all the options of the command: anything left over is an error, like in argparse. */
     void finish(boolean takesPositional) {
         List<String> extra = new ArrayList<>();
         for (String name : values.keySet()) {

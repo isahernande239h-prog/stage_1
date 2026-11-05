@@ -18,8 +18,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * Comandos de benchmark. Cada uno ejecuta una configuracion y escribe un JSON con las medidas.
- * El orquestador los lanza en un proceso nuevo para los tres lenguajes y mide desde fuera la memoria.
+ * Benchmark commands. Each one runs one configuration and writes a JSON with the measurements.
+ * The orchestrator launches them in a new process for the three languages and measures memory from outside.
  */
 public final class Bench {
     static final int CRASH_EXIT = 3;
@@ -55,7 +55,7 @@ public final class Bench {
         return Datalake::utcNow;
     }
 
-    /** Descarga, separa y guarda los ids que no esten ya en el control. Devuelve {ingeridos, fallidos, bytes}. */
+    /** Downloads, splits and saves the ids that are not in the control files yet. Returns {ingested, failed, bytes}. */
     static long[] ingestBooks(Datalake lake, Control control, Source source, List<Integer> ids,
                               Supplier<ZonedDateTime> clock, Integer crashAfter, String crashAt, double delay)
             throws Exception {
@@ -86,7 +86,7 @@ public final class Bench {
             boolean crashNow = crashAfter != null && ingested == crashAfter;
             lake.writeBook(bookId, parts[0], parts[1], crashNow && "between_renames".equals(crashAt));
             if (crashNow && "before_control".equals(crashAt)) {
-                throw new SimulatedCrashException("antes del control");
+                throw new SimulatedCrashException("before control");
             }
             control.markDownloaded(bookId);
             if (clock instanceof SyntheticClock) {
@@ -162,7 +162,7 @@ public final class Bench {
         r.put("layout", layout);
         r.put("n", ids.size());
 
-        // 1) escritura
+        // 1) write
         long t = System.nanoTime();
         long[] counts = ingestBooks(lake, control, Source.open(sourceSpec), ids, clock, null, null, 0);
         double secs = seconds(t);
@@ -171,7 +171,7 @@ public final class Bench {
         r.put("books_per_s", counts[0] / secs);
         r.put("mb_per_s", counts[2] / 1e6 / secs);
 
-        // 2) localizar un libro con la ruta calculada (o el registro en time)
+        // 2) find a book with the computed path (or the registry for time)
         lake = new Datalake(data.resolve("datalake"), layout);
         t = System.nanoTime();
         if (layout.equals("time")) {
@@ -181,12 +181,12 @@ public final class Bench {
         t = System.nanoTime();
         for (int bookId : ids) {
             if (lake.locate(bookId) == null) {
-                throw new AssertionError("libro " + bookId + " no encontrado");
+                throw new AssertionError("book " + bookId + " not found");
             }
         }
         r.put("lookup_direct_us", seconds(t) / ids.size() * 1e6);
 
-        // 3) localizar recorriendo el arbol (sin estructuras auxiliares)
+        // 3) find it by walking the tree (no helper structures)
         List<Integer> sample = new ArrayList<>();
         int stepSize = Math.max(1, ids.size() / 10);
         for (int i = 0; i < ids.size() && sample.size() < 10; i += stepSize) {
@@ -195,13 +195,13 @@ public final class Bench {
         t = System.nanoTime();
         for (int bookId : sample) {
             if (!lake.scan().complete.containsKey(bookId)) {
-                throw new AssertionError("libro " + bookId + " no encontrado al recorrer");
+                throw new AssertionError("book " + bookId + " not found when walking the tree");
             }
         }
         r.put("lookup_scan_ms", seconds(t) / sample.size() * 1000);
 
-        // 4) detectar los libros nuevos (los ultimos newBooks no estan indexados)
-        int cut = newBooks == 0 ? 0 : Math.max(0, ids.size() - newBooks);   // como ids[:-new] e ids[-new:]
+        // 4) detect the new books (the last newBooks are not indexed)
+        int cut = newBooks == 0 ? 0 : Math.max(0, ids.size() - newBooks);   // like ids[:-new] and ids[-new:]
         List<Integer> indexed = slice(ids, 0, cut);
         Set<Integer> expected = new HashSet<>(slice(ids, cut, ids.size()));
         StringBuilder sb = new StringBuilder();
@@ -238,7 +238,7 @@ public final class Bench {
         }
         r.put("detect_ok", ok);
 
-        // 5) espacio
+        // 5) disk space
         for (Map.Entry<String, Long> e : lake.storageStats().entrySet()) {
             r.put("storage_" + e.getKey(), e.getValue());
         }
@@ -251,9 +251,9 @@ public final class Bench {
         return 0;
     }
 
-    // ---------------------------------------------------------------- indice
+    // ---------------------------------------------------------------- index
 
-    /** Indice completo en memoria y numero total de tokens. */
+    /** Full index in memory and total number of tokens. */
     static class BuiltIndex {
         final Map<String, Map<Integer, Integer>> index = new LinkedHashMap<>();
         long tokens;
@@ -271,7 +271,7 @@ public final class Bench {
         return built;
     }
 
-    /** Igual que percentile() en Python: interpolacion lineal entre los dos valores mas cercanos. */
+    /** Same as percentile() in Python: linear interpolation between the two closest values. */
     static double percentile(double[] values, double p) {
         double[] sorted = values.clone();
         Arrays.sort(sorted);
@@ -319,7 +319,7 @@ public final class Bench {
         r.put("tokenize_s", (t1 - t0) / 1e9);
         r.put("persist_s", (t2 - t1) / 1e9);
         r.put("build_s", (t2 - t0) / 1e9);
-        built = null;   // se libera antes de seguir midiendo
+        built = null;   // freed before measuring the rest
         r.put("disk_bytes", store.diskUsage());
         store.close();
 
@@ -331,7 +331,7 @@ public final class Bench {
         List<String> queries = Spec.loadQueries(queriesFile != null ? Path.of(queriesFile) : null);
         List<List<String>> queryTerms = new ArrayList<>();
         List<String> lines = new ArrayList<>();
-        for (String q : queries) {   // la primera pasada sirve de calentamiento
+        for (String q : queries) {   // the first pass works as warm-up
             List<String> terms = Tokenizer.tokenize(q);
             queryTerms.add(terms);
             List<String> found = new ArrayList<>();
@@ -375,7 +375,7 @@ public final class Bench {
         return 0;
     }
 
-    /** Construye metadatos e indice y los exporta en un formato fijo para comparar lenguajes. */
+    /** Builds metadata and index and exports them in a fixed format to compare languages. */
     static int cmdCanonical(Args args) throws Exception {
         Path data = Path.of(args.required("--data"));
         Path datalake = Path.of(args.required("--datalake"));
@@ -435,7 +435,7 @@ public final class Bench {
         });
         store.close();
         metadata.close();
-        // sorted() de Python ordena por code points, no por UTF-16
+        // Python's sorted() orders by code points, not by UTF-16
         metaLines.sort(IndexStore::compareCodePoints);
         postLines.sort(IndexStore::compareCodePoints);
 

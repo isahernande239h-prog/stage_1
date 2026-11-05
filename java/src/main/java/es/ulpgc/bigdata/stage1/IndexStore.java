@@ -12,10 +12,10 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 /**
- * Estructuras del indice invertido. Todas tienen la misma interfaz:
- * writeFull guarda un indice completo {termino: {book_id: tf}}, open deja la estructura lista
- * para consultar, addBook anade (o sobrescribe) un libro, postings devuelve {book_id: tf},
- * terms recorre todo para exportar y diskUsage da los bytes en disco.
+ * Inverted index structures. They all have the same interface:
+ * writeFull saves a full index {term: {book_id: tf}}, open gets the structure ready
+ * for queries, addBook adds (or overwrites) a book, postings returns {book_id: tf},
+ * terms goes through everything for exporting and diskUsage gives the bytes on disk.
  */
 public interface IndexStore extends AutoCloseable {
     List<String> STORES = List.of("json", "hier", "mongo", "sqlite");
@@ -47,11 +47,11 @@ public interface IndexStore extends AutoCloseable {
             case "sqlite":
                 return new SqliteStore(datamarts);
             default:
-                throw new IllegalArgumentException("estructura desconocida: " + name);
+                throw new IllegalArgumentException("unknown store: " + name);
         }
     }
 
-    /** Libros que tienen todos los terminos, ordenados por id. */
+    /** Books that have all the terms, sorted by id. */
     static List<Integer> searchIds(IndexStore store, List<String> terms) throws Exception {
         Set<Integer> result = null;
         for (String term : new LinkedHashSet<>(terms)) {
@@ -73,7 +73,7 @@ public interface IndexStore extends AutoCloseable {
         return ids;
     }
 
-    /** Orden por code points, como sorted() en Python o BINARY en SQLite (compareTo usa UTF-16). */
+    /** Order by code points, like sorted() in Python or BINARY in SQLite (compareTo uses UTF-16). */
     static int compareCodePoints(String a, String b) {
         int i = 0;
         int j = 0;

@@ -5,8 +5,8 @@ import java.time.ZonedDateTime;
 import java.util.function.Supplier;
 
 /**
- * Reloj del benchmark: N libros por hora a partir de una fecha fija.
- * Con el reloj real todo el benchmark caeria en la misma carpeta horaria.
+ * Benchmark clock: N books per hour starting from a fixed date.
+ * With the real clock the whole benchmark would end up in the same hour folder.
  */
 public class SyntheticClock implements Supplier<ZonedDateTime> {
     private final ZonedDateTime start;

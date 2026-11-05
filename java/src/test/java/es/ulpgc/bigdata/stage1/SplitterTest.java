@@ -70,19 +70,19 @@ class SplitterTest {
 
     @Test
     void markersAreAsciiCaseInsensitiveOnly() {
-        // la s larga (U+017F) no vale como "s" en ASCII
+        // the long s (U+017F) doesn't count as "s" in ASCII
         String text = "h\n*** \u017FTART OF THE PROJECT GUTENBERG EBOOK X\nb\n*** END OF THE PROJECT GUTENBERG EBOOK X\n";
         assertThrows(NoMarkersException.class, () -> Splitter.split(text));
     }
 
     @Test
     void decodeRemovesBom() {
-        assertEquals("hola", Source.decode("\uFEFFhola".getBytes(StandardCharsets.UTF_8)));
+        assertEquals("hello", Source.decode("\uFEFFhello".getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
     void decodeReplacesLikePython() {
-        // mismos resultados que bytes.decode("utf-8", errors="replace")
+        // same results as bytes.decode("utf-8", errors="replace")
         assertEquals("\uFFFD\uFFFD\uFFFD", Source.decode(HexFormat.of().parseHex("eda080")));
         assertEquals("\uFFFD\uFFFD\uFFFD", Source.decode(HexFormat.of().parseHex("e08080")));
         assertEquals("a\uFFFDb", Source.decode(HexFormat.of().parseHex("61e28262")));
@@ -93,9 +93,9 @@ class SplitterTest {
 
     @Test
     void cacheSource(@TempDir Path tmp) throws Exception {
-        Files.write(tmp.resolve("pg5.txt"), "\uFEFFtexto".getBytes(StandardCharsets.UTF_8));
+        Files.write(tmp.resolve("pg5.txt"), "\uFEFFtext".getBytes(StandardCharsets.UTF_8));
         Source source = Source.open("cache:" + tmp);
-        assertEquals("texto", source.fetch(5));
+        assertEquals("text", source.fetch(5));
         assertThrows(BookNotFoundException.class, () -> source.fetch(6));
     }
 }

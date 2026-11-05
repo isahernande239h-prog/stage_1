@@ -108,7 +108,7 @@ class MetadataTokenizerTest {
 
     @Test
     void unicodeLettersAndLengthInCodePoints() {
-        // U+1D504 es una letra fuera del BMP: cuenta como un caracter
+        // U+1D504 is a letter outside the BMP: it counts as one character
         String a = new String(Character.toChars(0x1D504));
         String b = new String(Character.toChars(0x1D505));
         assertEquals(List.of(a + b), Tokenizer.tokenize(a + b + " " + a));
@@ -116,7 +116,7 @@ class MetadataTokenizerTest {
 
     @Test
     void finalSigmaAndDottedCapitalI() {
-        // sigma final al pasar a minusculas; la I con punto da i + U+0307, que no es letra
+        // final sigma when lowercasing; the dotted I gives i + U+0307, which is not a letter
         assertEquals(List.of("\u03BF\u03B4\u03BF\u03C2"), Tokenizer.tokenize("\u039F\u0394\u039F\u03A3"));
         assertEquals(List.of("abi"), Tokenizer.tokenize("AB\u0130C"));
     }

@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Lee pg<id>.txt de una carpeta. Sirve para repetir benchmarks sin volver a descargar. */
+/** Reads pg<id>.txt from a folder. Useful to repeat benchmarks without downloading again. */
 public class CacheSource implements Source {
     private final Path folder;
 

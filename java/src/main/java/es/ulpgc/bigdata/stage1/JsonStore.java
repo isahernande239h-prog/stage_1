@@ -10,7 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-/** Todo el indice en un unico fichero JSON: {"termino": {"id": tf}}. */
+/** The whole index in a single JSON file: {"term": {"id": tf}}. */
 public class JsonStore implements IndexStore {
     private final Path path;
     private final Path tmp;
@@ -28,7 +28,7 @@ public class JsonStore implements IndexStore {
     }
 
     private void save(Map<String, Map<Integer, Integer>> data) throws IOException {
-        // compacto y sin escapar los caracteres no ASCII, igual que json.dump en Python
+        // compact and without escaping non-ASCII characters, same as json.dump in Python
         try (JsonWriter out = new JsonWriter(Files.newBufferedWriter(tmp, StandardCharsets.UTF_8))) {
             out.beginObject();
             for (Map.Entry<String, Map<Integer, Integer>> e : data.entrySet()) {
@@ -68,7 +68,7 @@ public class JsonStore implements IndexStore {
 
     @Override
     public void addBook(int bookId, Map<String, Integer> tfs) throws IOException {
-        // no hay forma de cambiar una parte del fichero: se reescribe entero
+        // there is no way to change just part of the file: it gets rewritten entirely
         if (index == null) {
             open();
         }

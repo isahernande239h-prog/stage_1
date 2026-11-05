@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Resultado de recorrer el datalake entero. */
+/** Result of walking the whole datalake. */
 public class ScanResult {
-    public final Map<Integer, List<String>> complete = new LinkedHashMap<>();  // id -> particiones donde esta completo
-    public final List<Path> orphans = new ArrayList<>();   // ficheros sin su pareja
-    public final List<Path> temps = new ArrayList<>();     // .tmp que quedaron de una escritura cortada
+    public final Map<Integer, List<String>> complete = new LinkedHashMap<>();  // id -> partitions where it is complete
+    public final List<Path> orphans = new ArrayList<>();   // files missing their pair
+    public final List<Path> temps = new ArrayList<>();     // .tmp files left over from a cut-off write
 
     public Set<Integer> ids() {
         return new HashSet<>(complete.keySet());

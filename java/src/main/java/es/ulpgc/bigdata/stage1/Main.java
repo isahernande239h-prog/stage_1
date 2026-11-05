@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-/** Linea de comandos, con los mismos comandos y opciones que python -m searchengine. */
+/** Command line, with the same commands and options as python -m searchengine. */
 public class Main {
     static final String DEFAULT_MONGO_URI = "mongodb://127.0.0.1:27017";
     static final String DEFAULT_MONGO_DB = "searchengine";
@@ -30,7 +30,7 @@ public class Main {
             "  canonical       --data D --datalake DL --ids F --out PREFIX [--n N] [--add K] [--store ...]");
 
     public static void main(String[] argv) {
-        // la salida siempre en UTF-8, como Python
+        // output is always UTF-8, like Python
         System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8));
         int code;
         try {

@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-/** Un fichero por termino: inverted_index/<L>/<termino>.txt con lineas "id<TAB>tf". */
+/** One file per term: inverted_index/<L>/<term>.txt with lines "id<TAB>tf". */
 public class HierStore implements IndexStore {
     static final Set<String> RESERVED = new HashSet<>(Arrays.asList("con", "prn", "aux", "nul"));
     static final String HEX = "0123456789ABCDEF";
@@ -38,8 +38,8 @@ public class HierStore implements IndexStore {
     }
 
     static String termFilename(String term) {
-        // a-z tal cual y el resto como %XX: el sistema de ficheros de Windows y el de macOS
-        // no distinguen mayusculas, y dos terminos griegos que solo cambian en la sigma final chocarian
+        // a-z as they are and the rest as %XX: the Windows and macOS file systems are not
+        // case sensitive, and two Greek terms that only differ in the final sigma would clash
         StringBuilder name = new StringBuilder();
         for (int i = 0; i < term.length(); i++) {
             char ch = term.charAt(i);
@@ -122,7 +122,7 @@ public class HierStore implements IndexStore {
                 continue;
             }
             int tab = line.indexOf('\t');
-            // si un libro se repite, gana la ultima linea
+            // if a book shows up twice, the last line wins
             found.put(Integer.parseInt(line.substring(0, tab)), Integer.parseInt(line.substring(tab + 1)));
         }
         return found;
@@ -148,7 +148,7 @@ public class HierStore implements IndexStore {
 
     @Override
     public long diskUsage() throws IOException {
-        // bytes asignados (bloques), que con medio millon de ficheros es lo que cuenta
+        // allocated bytes (blocks), which is what matters with half a million files
         long block = FileUtil.blockSize(root);
         long total = 0;
         try (Stream<Path> walk = Files.walk(root)) {

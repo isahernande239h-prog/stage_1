@@ -3,28 +3,28 @@ package es.ulpgc.bigdata.stage1;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Separa cabecera y cuerpo de un libro de Gutenberg. */
+/** Splits a Gutenberg book into header and body. */
 public final class Splitter {
-    // Los marcadores cambian un poco entre libros (THE/THIS, EBOOK/E-BOOK, con o sin espacio
-    // despues de los asteriscos), por eso no se busca la cadena exacta del enunciado.
-    // CASE_INSENSITIVE sin UNICODE_CASE solo compara letras ASCII, como re.ASCII en Python.
+    // The markers change a bit between books (THE/THIS, EBOOK/E-BOOK, with or without a space
+    // after the asterisks), so we don't look for the exact string from the assignment.
+    // CASE_INSENSITIVE without UNICODE_CASE only compares ASCII letters, like re.ASCII in Python.
     static final Pattern START = Pattern.compile(
             "\\*\\*\\*[ \\t]*START OF (THE|THIS) PROJECT GUTENBERG E-?BOOK", Pattern.CASE_INSENSITIVE);
     static final Pattern END = Pattern.compile(
             "\\*\\*\\*[ \\t]*END OF (THE|THIS) PROJECT GUTENBERG E-?BOOK", Pattern.CASE_INSENSITIVE);
 
-    // trim() y strip() quitan mas cosas y darian resultados distintos a Python/JS
+    // trim() and strip() remove more characters and would give different results from Python/JS
     static final String ASCII_WS = " \t\n\r\f\u000B";
 
     private Splitter() {
     }
 
-    /** Devuelve {cabecera, cuerpo}. Lanza NoMarkersException si no estan los dos marcadores. */
+    /** Returns {header, body}. Throws NoMarkersException if the two markers aren't there. */
     public static String[] split(String text) throws NoMarkersException {
         text = FileUtil.normalizeNewlines(text);
         Matcher start = START.matcher(text);
         Matcher end = END.matcher(text);
-        int startLine = -1;     // inicio y fin de la linea de START
+        int startLine = -1;     // start and end of the START line
         int startLineEnd = -1;
         int endOffset = -1;
         int pos = 0;

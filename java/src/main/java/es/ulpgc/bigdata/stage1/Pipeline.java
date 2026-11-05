@@ -10,9 +10,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-/** Capa de control: decide en cada paso si indexar un libro pendiente o descargar uno nuevo. */
+/** Control layer: on each step it decides whether to index a pending book or download a new one. */
 public class Pipeline implements AutoCloseable {
-    /** Resultado de un paso: downloaded, indexed, failed o idle (con bookId null). */
+    /** Result of a step: downloaded, indexed, failed or idle (with bookId null). */
     public record Step(String action, Integer bookId) {
     }
 
@@ -45,7 +45,7 @@ public class Pipeline implements AutoCloseable {
             changed |= value != 0;
         }
         if (changed) {
-            log.accept("[CONTROL] reconciliacion: " + pythonDict(stats));
+            log.accept("[CONTROL] reconciliation: " + pythonDict(stats));
         }
         return stats;
     }
@@ -54,7 +54,7 @@ public class Pipeline implements AutoCloseable {
         Set<Integer> pending = control.pending();
         if (!pending.isEmpty()) {
             int bookId = Collections.min(pending);
-            log.accept("[CONTROL] indexando libro " + bookId);
+            log.accept("[CONTROL] indexing book " + bookId);
             indexBook(bookId);
             return new Step("indexed", bookId);
         }
@@ -63,7 +63,7 @@ public class Pipeline implements AutoCloseable {
         done.addAll(control.failed().keySet());
         for (int bookId : candidates) {
             if (!done.contains(bookId)) {
-                log.accept("[CONTROL] descargando libro " + bookId);
+                log.accept("[CONTROL] downloading book " + bookId);
                 boolean ok = downloadBook(bookId);
                 return new Step(ok ? "downloaded" : "failed", bookId);
             }
@@ -75,7 +75,7 @@ public class Pipeline implements AutoCloseable {
         reconcile();
         for (int i = 0; i < steps; i++) {
             if (step().action().equals("idle")) {
-                log.accept("[CONTROL] no queda nada por hacer");
+                log.accept("[CONTROL] nothing left to do");
                 break;
             }
         }
@@ -83,7 +83,7 @@ public class Pipeline implements AutoCloseable {
 
     boolean downloadBook(int bookId) throws Exception {
         if (delay > 0) {
-            Thread.sleep(Math.round(delay * 1000));  // cortesia con gutenberg.org
+            Thread.sleep(Math.round(delay * 1000));  // be polite to gutenberg.org
         }
         String[] parts;
         try {
@@ -96,11 +96,11 @@ public class Pipeline implements AutoCloseable {
                 reason = "no_markers";
             }
             control.markFailed(bookId, reason);
-            log.accept("[CONTROL] libro " + bookId + " descartado: " + reason);
+            log.accept("[CONTROL] book " + bookId + " skipped: " + reason);
             return false;
         }
         lake.writeBook(bookId, parts[0], parts[1]);
-        control.markDownloaded(bookId);  // solo cuando los dos ficheros ya estan en su sitio
+        control.markDownloaded(bookId);  // only once both files are in place
         return true;
     }
 
@@ -119,7 +119,7 @@ public class Pipeline implements AutoCloseable {
         metadata.close();
     }
 
-    /** Mismo formato que un dict de Python en el log: {'temps': 0, 'orphans': 1}. */
+    /** Same format as a Python dict in the log: {'temps': 0, 'orphans': 1}. */
     static String pythonDict(Map<String, Integer> map) {
         List<String> items = new ArrayList<>();
         map.forEach((k, v) -> items.add("'" + k + "': " + v));

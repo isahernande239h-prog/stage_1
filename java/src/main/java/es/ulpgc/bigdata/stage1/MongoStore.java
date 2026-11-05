@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import org.bson.Document;
 
-/** Un documento por termino en la coleccion inverted_index: {_id: termino, postings: {"id": tf}}. */
+/** One document per term in the inverted_index collection: {_id: term, postings: {"id": tf}}. */
 public class MongoStore implements IndexStore {
     static final int BATCH = 5000;
 
@@ -92,7 +92,7 @@ public class MongoStore implements IndexStore {
 
     @Override
     public long diskUsage() {
-        // sin fsync, collStats puede dar casi 0 porque WiredTiger aun no ha escrito el checkpoint
+        // without fsync, collStats can return almost 0 because WiredTiger hasn't written the checkpoint yet
         client.getDatabase("admin").runCommand(new Document("fsync", 1));
         Document stats = db.runCommand(new Document("collStats", "inverted_index"));
         return ((Number) stats.get("storageSize")).longValue() + ((Number) stats.get("totalIndexSize")).longValue();

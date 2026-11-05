@@ -10,14 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Acceso a los ficheros compartidos de spec/ (los mismos para los tres lenguajes). */
+/** Access to the shared files in spec/ (the same for the three languages). */
 public final class Spec {
     private static Path dir;
 
     private Spec() {
     }
 
-    /** STAGE1_SPEC o la primera carpeta spec/ con pipeline_spec.md subiendo desde el jar o desde el directorio actual. */
+    /** STAGE1_SPEC, or the first spec/ folder with pipeline_spec.md going up from the jar or from the current directory. */
     public static synchronized Path dir() {
         if (dir != null) {
             return dir;
@@ -31,7 +31,7 @@ public final class Spec {
         try {
             starts.add(Path.of(Spec.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toAbsolutePath());
         } catch (Exception e) {
-            // sin ubicacion del jar se prueba solo desde el directorio actual
+            // without the jar location we only try from the current directory
         }
         starts.add(Path.of("").toAbsolutePath());
         for (Path start : starts) {
@@ -43,7 +43,7 @@ public final class Spec {
                 }
             }
         }
-        throw new IllegalStateException("no se encuentra la carpeta spec/ (se puede indicar con STAGE1_SPEC)");
+        throw new IllegalStateException("cannot find the spec/ folder (set STAGE1_SPEC to point to it)");
     }
 
     static List<String> lines(Path path) throws IOException {
@@ -66,7 +66,7 @@ public final class Spec {
         for (String line : lines(dir().resolve("languages.tsv"))) {
             String[] parts = line.split("\t", -1);
             if (parts.length != 2) {
-                throw new IOException("linea mal formada en languages.tsv: " + line);
+                throw new IOException("malformed line in languages.tsv: " + line);
             }
             table.put(parts[0], parts[1]);
         }

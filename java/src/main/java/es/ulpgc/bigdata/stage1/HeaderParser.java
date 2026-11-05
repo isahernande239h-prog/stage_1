@@ -10,9 +10,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Lee los campos "Nombre: valor" de la cabecera de Gutenberg. */
+/** Reads the "Name: value" fields of the Gutenberg header. */
 public final class HeaderParser {
-    // DOTALL para que (.*) coja tambien U+2028, U+0085... como el punto de Python
+    // DOTALL so that (.*) also takes U+2028, U+0085... like the dot in Python
     static final Pattern FIELD = Pattern.compile("([A-Za-z][A-Za-z -]*):[ \\t]*(.*)", Pattern.DOTALL);
     static final Pattern YEAR = Pattern.compile("(?<![0-9])[0-9]{4}(?![0-9])");
     static final Pattern SPACES = Pattern.compile("[ \\t]+");
@@ -48,7 +48,7 @@ public final class HeaderParser {
         return s.substring(from, to);
     }
 
-    /** {nombre en minusculas: [valores]}. Cada valor es una lista de lineas (la primera + continuaciones). */
+    /** {lowercase name: [values]}. Each value is a list of lines (the first one + continuations). */
     public static Map<String, List<List<String>>> headerFields(String header) {
         Map<String, List<List<String>>> fields = new LinkedHashMap<>();
         List<String> current = null;
@@ -109,7 +109,7 @@ public final class HeaderParser {
         if (fields.containsKey("original publication")) {
             Matcher m = YEAR.matcher(String.join(" ", fields.get("original publication").get(0)));
             while (m.find()) {
-                year = Integer.parseInt(m.group());   // vale el ultimo
+                year = Integer.parseInt(m.group());   // the last one wins
             }
         }
 

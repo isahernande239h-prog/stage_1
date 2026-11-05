@@ -32,8 +32,8 @@
             <artifactId>gson</artifactId>
             <version>2.11.0</version>
         </dependency>
-        <!-- el driver de mongo escribe logs por slf4j: asi no sale nada por pantalla.
-             Misma version que el slf4j-api que trae sqlite-jdbc -->
+        <!-- the mongo driver logs through slf4j: this way nothing gets printed.
+             Same version as the slf4j-api that comes with sqlite-jdbc -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-nop</artifactId>

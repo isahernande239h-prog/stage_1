@@ -4,9 +4,9 @@ import java.util.Collection;
 import java.util.Map;
 
 /**
- * Salida JSON con el mismo formato que json.dump de Python, para que las tres versiones impriman lo mismo.
- * line(): una linea con ", " y ": " y solo ASCII (json.dump por defecto).
- * pretty(): indentado de 2 espacios y sin escapar los caracteres no ASCII (indent=2, ensure_ascii=False).
+ * JSON output in the same format as Python's json.dump, so the three versions print the same thing.
+ * line(): one line with ", " and ": " and ASCII only (json.dump defaults).
+ * pretty(): 2-space indent and non-ASCII characters left unescaped (indent=2, ensure_ascii=False).
  */
 final class Json {
     private Json() {
@@ -24,7 +24,7 @@ final class Json {
         return sb.toString();
     }
 
-    // level < 0: todo en una linea
+    // level < 0: everything on one line
     private static void write(StringBuilder sb, Object value, int level, boolean ascii) {
         if (value == null) {
             sb.append("null");
@@ -63,7 +63,7 @@ final class Json {
             newline(sb, level);
             sb.append(']');
         } else {
-            sb.append(value);   // numeros y booleanos
+            sb.append(value);   // numbers and booleans
         }
     }
 

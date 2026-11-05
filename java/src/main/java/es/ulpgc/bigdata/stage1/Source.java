@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
-/** Lectura de libros: de gutenberg.org (o un espejo con las mismas URLs) o de una cache local. */
+/** Reading books: from gutenberg.org (or a mirror with the same URLs) or from a local cache. */
 public interface Source {
     String DEFAULT_BASE = "https://www.gutenberg.org";
 
@@ -20,8 +20,8 @@ public interface Source {
     static String decode(byte[] raw) {
         String text = new String(raw, StandardCharsets.UTF_8);
         if (text.indexOf('\uFFFD') >= 0) {
-            // Java junta en un solo U+FFFD algunas secuencias mal formadas (por ejemplo ED A0 80)
-            // y Python pone uno por cada trozo invalido: en ese caso se decodifica a mano
+            // Java merges some malformed sequences into a single U+FFFD (for example ED A0 80)
+            // while Python puts one per invalid chunk: in that case we decode by hand
             text = decodeByHand(raw);
         }
         if (text.startsWith("\uFEFF")) {
@@ -30,7 +30,7 @@ public interface Source {
         return text;
     }
 
-    /** UTF-8 con U+FFFD por cada trozo maximo invalido (lo mismo que errors="replace" en Python). */
+    /** UTF-8 with one U+FFFD per maximal invalid chunk (the same as errors="replace" in Python). */
     static String decodeByHand(byte[] b) {
         StringBuilder sb = new StringBuilder(b.length);
         int i = 0;
@@ -54,7 +54,7 @@ public interface Source {
                 if (c == 0xE0) {
                     min = 0xA0;
                 } else if (c == 0xED) {
-                    max = 0x9F;   // fuera los surrogates
+                    max = 0x9F;   // no surrogates
                 }
             } else if (c >= 0xF0 && c <= 0xF4) {
                 need = 3;

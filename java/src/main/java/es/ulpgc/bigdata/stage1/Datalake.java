@@ -21,7 +21,7 @@ import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-/** Datalake con tres organizaciones posibles: time, book y range (ver spec/pipeline_spec.md). */
+/** Datalake with three possible layouts: time, book and range (see spec/pipeline_spec.md). */
 public class Datalake {
     public static final List<String> LAYOUTS = List.of("time", "book", "range");
     public static final String REGISTRY = "_registry.tsv";
@@ -38,7 +38,7 @@ public class Datalake {
 
     public Datalake(Path root, String layout, Supplier<ZonedDateTime> clock) {
         if (!LAYOUTS.contains(layout)) {
-            throw new IllegalArgumentException("layout desconocido: " + layout);
+            throw new IllegalArgumentException("unknown layout: " + layout);
         }
         this.root = root;
         this.layout = layout;
@@ -49,7 +49,7 @@ public class Datalake {
         return ZonedDateTime.now(ZoneOffset.UTC);
     }
 
-    // ---------- rutas ----------
+    // ---------- paths ----------
 
     public String partitionFor(int bookId) {
         if (layout.equals("time")) {
@@ -68,20 +68,20 @@ public class Datalake {
         return new String[] {bookId + ".header.txt", bookId + ".body.txt"};
     }
 
-    /** {cabecera, cuerpo} de un libro en una particion. */
+    /** {header, body} of a book in a partition. */
     public Path[] paths(int bookId, String partition) {
         Path folder = root.resolve(partition);
         String[] names = fileNames(bookId);
         return new Path[] {folder.resolve(names[0]), folder.resolve(names[1])};
     }
 
-    // ---------- escritura ----------
+    // ---------- writing ----------
 
     public String writeBook(int bookId, String header, String body) throws IOException {
         return writeBook(bookId, header, body, false);
     }
 
-    /** Escribe los dos ficheros con tmp + rename. Devuelve la particion usada. */
+    /** Writes the two files with tmp + rename. Returns the partition used. */
     public String writeBook(int bookId, String header, String body, boolean crashBetweenRenames) throws IOException {
         String partition = partitionFor(bookId);
         Path[] paths = paths(bookId, partition);
@@ -94,7 +94,7 @@ public class Datalake {
         Files.write(headerTmp, header.getBytes(StandardCharsets.UTF_8));
         FileUtil.replace(bodyTmp, bodyPath);
         if (crashBetweenRenames) {
-            throw new SimulatedCrashException("entre renombrados");
+            throw new SimulatedCrashException("between renames");
         }
         FileUtil.replace(headerTmp, headerPath);
         if (layout.equals("time")) {
@@ -106,7 +106,7 @@ public class Datalake {
         return partition;
     }
 
-    // ---------- lectura ----------
+    // ---------- reading ----------
 
     public Map<Integer, String> loadRegistry() throws IOException {
         Map<Integer, String> result = new HashMap<>();
@@ -114,13 +114,13 @@ public class Datalake {
             int tab = line.indexOf('\t');
             String id = tab < 0 ? line : line.substring(0, tab);
             String partition = tab < 0 ? "" : line.substring(tab + 1);
-            result.put(Integer.parseInt(id.strip()), partition);  // si se repite, vale la ultima
+            result.put(Integer.parseInt(id.strip()), partition);  // if it shows up twice, the last one wins
         }
         registry = result;
         return result;
     }
 
-    /** {cabecera, cuerpo} de un libro completo, o null. */
+    /** {header, body} of a complete book, or null. */
     public Path[] locate(int bookId) throws IOException {
         String partition;
         if (layout.equals("time")) {
@@ -141,11 +141,11 @@ public class Datalake {
         return null;
     }
 
-    /** {cabecera, cuerpo} como texto. */
+    /** {header, body} as text. */
     public String[] readBook(int bookId) throws IOException {
         Path[] found = locate(bookId);
         if (found == null) {
-            throw new IOException("libro " + bookId + " no esta en el datalake");
+            throw new IOException("book " + bookId + " is not in the datalake");
         }
         return new String[] {FileUtil.readText(found[0]), FileUtil.readText(found[1])};
     }
@@ -154,7 +154,7 @@ public class Datalake {
         return root.relativize(path).toString().replace(File.separatorChar, '/');
     }
 
-    // ---------- recorrido completo ----------
+    // ---------- full scan ----------
 
     private static String[] sortedNames(Path folder) {
         String[] names = folder.toFile().list();
@@ -208,7 +208,7 @@ public class Datalake {
         return true;
     }
 
-    /** "header" o "body" si el fichero es de un libro, si no null. */
+    /** "header" or "body" if the file belongs to a book, otherwise null. */
     private String kindOf(String partition, String name) {
         if (layout.equals("book")) {
             if ((name.equals("header.txt") || name.equals("body.txt")) && isDigits(partition)) {
@@ -263,9 +263,9 @@ public class Datalake {
         return result;
     }
 
-    // ---------- recuperacion ----------
+    // ---------- recovery ----------
 
-    /** Deja el datalake y downloaded_books.txt consistentes despues de una caida. */
+    /** Leaves the datalake and downloaded_books.txt consistent after a crash. */
     public Map<String, Integer> reconcile(Control control) throws IOException {
         ScanResult scan = scan();
         Map<String, Integer> stats = new LinkedHashMap<>();
@@ -305,7 +305,7 @@ public class Datalake {
             for (Map.Entry<Integer, List<String>> e : new TreeMap<>(scan.complete).entrySet()) {
                 sb.append(e.getKey()).append('\t').append(e.getValue().get(0)).append('\n');
             }
-            Files.createDirectories(root); // puede que aun no se haya escrito nada
+            Files.createDirectories(root); // maybe nothing has been written yet
             Path tmp = root.resolve(REGISTRY + ".tmp");
             Files.writeString(tmp, sb, StandardCharsets.UTF_8);
             FileUtil.replace(tmp, root.resolve(REGISTRY));
@@ -334,7 +334,7 @@ public class Datalake {
         return stats;
     }
 
-    // ---------- espacio ocupado ----------
+    // ---------- disk usage ----------
 
     public Map<String, Long> storageStats() throws IOException {
         long files = 0;

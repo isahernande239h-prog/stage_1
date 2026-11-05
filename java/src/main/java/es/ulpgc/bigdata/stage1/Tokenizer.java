@@ -9,7 +9,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/** Tokenizador comun: minusculas, secuencias de letras unicode, longitud >= 2 y sin stop words. */
+/** Shared tokenizer: lowercase, runs of unicode letters, length >= 2 and no stop words. */
 public final class Tokenizer {
     private static Set<String> stopwords;
 
@@ -42,7 +42,7 @@ public final class Tokenizer {
                 i += Character.charCount(cp);
                 continue;
             }
-            // secuencia maxima de letras; la longitud se cuenta en code points, no en chars
+            // longest run of letters; the length is counted in code points, not chars
             int start = i;
             int letters = 0;
             while (i < n) {
@@ -63,7 +63,7 @@ public final class Tokenizer {
         return tokens;
     }
 
-    /** {termino: veces}, en el orden en que aparece cada termino por primera vez (como Counter). */
+    /** {term: count}, in the order each term first shows up (like Counter). */
     public static Map<String, Integer> termFrequencies(String text) {
         return termFrequencies(text, stopwords());
     }

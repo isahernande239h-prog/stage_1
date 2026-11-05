@@ -23,7 +23,7 @@ class PipelineTest {
             {"1", "Moby Dick", "Herman Melville", "the whale and the sea"},
             {"2", "Treasure Island", "R. L. Stevenson", "an island with gold treasure by the sea"},
         };
-        // el 3 no existe (404)
+        // book 3 doesn't exist (404)
         for (String[] b : books) {
             String text = "Title: " + b[1] + "\n\nAuthor: " + b[2] + "\n\nLanguage: English\n"
                     + "*** START OF THE PROJECT GUTENBERG EBOOK X ***\n" + b[3]
@@ -46,7 +46,7 @@ class PipelineTest {
         try (Pipeline pipe = new Pipeline(data, "range", "sqlite", "cache:" + tmp.resolve("cache"),
                 List.of(1, 2, 3, 4), 0, logs::add, null, null)) {
             assertEquals(new Pipeline.Step("downloaded", 1), pipe.step());
-            assertEquals(new Pipeline.Step("indexed", 1), pipe.step());      // primero se indexa lo pendiente
+            assertEquals(new Pipeline.Step("indexed", 1), pipe.step());      // pending books are indexed first
             assertEquals(new Pipeline.Step("downloaded", 2), pipe.step());
             assertEquals(new Pipeline.Step("indexed", 2), pipe.step());
             assertEquals(new Pipeline.Step("failed", 3), pipe.step());
@@ -56,8 +56,8 @@ class PipelineTest {
             assertEquals(Set.of(1, 2), pipe.control.downloaded());
             assertEquals(Set.of(1, 2), pipe.control.indexed());
         }
-        assertEquals("[CONTROL] descargando libro 1", logs.get(0));
-        assertEquals("[CONTROL] libro 3 descartado: not_found", logs.get(5));
+        assertEquals("[CONTROL] downloading book 1", logs.get(0));
+        assertEquals("[CONTROL] book 3 skipped: not_found", logs.get(5));
 
         Map<String, Object> result = Pipeline.search(data, "sqlite", "the sea", null, null);
         assertEquals(List.of("sea"), result.get("terms"));
@@ -98,9 +98,9 @@ class PipelineTest {
             pipe.run(5);
         }
         assertEquals(List.of(
-                "[CONTROL] reconciliacion: {'temps': 0, 'orphans': 0, 'duplicates': 0, 'added_to_control': 0, 'removed_from_control': 1}",
-                "[CONTROL] descargando libro 1",
-                "[CONTROL] indexando libro 1",
-                "[CONTROL] no queda nada por hacer"), logs);
+                "[CONTROL] reconciliation: {'temps': 0, 'orphans': 0, 'duplicates': 0, 'added_to_control': 0, 'removed_from_control': 1}",
+                "[CONTROL] downloading book 1",
+                "[CONTROL] indexing book 1",
+                "[CONTROL] nothing left to do"), logs);
     }
 }

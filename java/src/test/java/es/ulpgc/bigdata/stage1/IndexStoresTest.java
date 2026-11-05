@@ -50,7 +50,7 @@ class IndexStoresTest {
 
     IndexStore open(String name) throws Exception {
         if (name.equals("mongo")) {
-            assumeTrue(mongoAvailable(), "MongoDB no esta arrancado");
+            assumeTrue(mongoAvailable(), "MongoDB is not running");
         }
         store = IndexStore.openStore(name, tmp.resolve("datamarts"), "mongodb://127.0.0.1:27017", "stage1_junit");
         return store;
@@ -133,7 +133,7 @@ class IndexStoresTest {
 
     @Test
     void codePointOrder() {
-        // U+FF41 va antes que U+1D504 por code point, pero despues en UTF-16
+        // U+FF41 comes before U+1D504 by code point, but after in UTF-16
         String a = "\uFF41";
         String b = new String(Character.toChars(0x1D504));
         assertTrue(IndexStore.compareCodePoints(a, b) < 0);

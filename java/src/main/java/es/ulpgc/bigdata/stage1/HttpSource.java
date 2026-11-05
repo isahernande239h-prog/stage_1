@@ -8,9 +8,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.OptionalLong;
 
-/** Descarga de gutenberg.org o de un espejo con las mismas URLs. */
+/** Downloads from gutenberg.org or from a mirror with the same URLs. */
 public class HttpSource implements Source {
-    static final String USER_AGENT = "ulpgc-bigdata-stage1/1.0 (proyecto de clase)";
+    static final String USER_AGENT = "ulpgc-bigdata-stage1/1.0 (class project)";
     static final int ATTEMPTS = 3;
 
     private final String base;
@@ -41,7 +41,7 @@ public class HttpSource implements Source {
         HttpRequest request = HttpRequest.newBuilder(URI.create(url(bookId)))
                 .timeout(Duration.ofSeconds(30))
                 .header("User-Agent", USER_AGENT)
-                // sin compresion para poder comparar Content-Length con lo recibido
+                // no compression so Content-Length can be compared with what we got
                 .header("Accept-Encoding", "identity")
                 .GET()
                 .build();
@@ -50,7 +50,7 @@ public class HttpSource implements Source {
             HttpResponse<byte[]> resp;
             try {
                 if (attempt > 0) {
-                    Thread.sleep(1000L << (attempt - 1));  // 1 s y luego 2 s
+                    Thread.sleep(1000L << (attempt - 1));  // 1 s and then 2 s
                 }
                 resp = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
             } catch (IOException e) {
@@ -58,7 +58,7 @@ public class HttpSource implements Source {
                 continue;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new DownloadException("interrumpido");
+                throw new DownloadException("interrupted");
             }
             int status = resp.statusCode();
             if (status == 404) {
