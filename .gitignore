@@ -1,4 +1,4 @@
-# datos generados
+# generated data
 data/
 work/
 *.db
@@ -16,7 +16,7 @@ java/target/
 # node
 javascript/node_modules/
 
-# varios
+# misc
 .DS_Store
 .idea/
 .vscode/

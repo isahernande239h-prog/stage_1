@@ -1,73 +1,73 @@
-# Stage 1 - Capa de datos del buscador
+# Stage 1 - Search engine data layer
 
-Primera fase del proyecto de Big Data (Grado en Ciencia e Ingeniería de Datos, ULPGC). El objetivo es
-montar la capa de datos de un buscador de libros de [Project Gutenberg](https://www.gutenberg.org):
+First stage of the Big Data project (Degree in Data Science and Engineering, ULPGC). The goal is to
+build the data layer of a search engine for books from [Project Gutenberg](https://www.gutenberg.org):
 
-- **Datalake**: los libros descargados, separados en cabecera y cuerpo.
-- **Datamarts**: metadatos (título, autor, idioma, año) en SQLite y el índice invertido.
-- **Capa de control**: ficheros que dicen qué libros están descargados e indexados.
+- **Datalake**: the downloaded books, split into header and body.
+- **Datamarts**: metadata (title, author, language, year) in SQLite and the inverted index.
+- **Control layer**: files that keep track of which books are downloaded and indexed.
 
-Todo está implementado **tres veces, en Python, Java y JavaScript (Node.js)**, con las mismas reglas,
-para comparar lenguajes. También se comparan **tres organizaciones del datalake** (`time`, `book`,
-`range`) y **cuatro estructuras del índice** (`json`, `hier`, `mongo`, `sqlite`).
+Everything is implemented **three times, in Python, Java and JavaScript (Node.js)**, with the same rules,
+so the languages can be compared. It also compares **three datalake layouts** (`time`, `book`,
+`range`) and **four index structures** (`json`, `hier`, `mongo`, `sqlite`).
 
-Las reglas comunes (descarga, separación, tokenizador, layouts, formato del índice...) están en
-[spec/pipeline_spec.md](spec/pipeline_spec.md). El informe está en [report/](report/).
+The shared rules (download, splitting, tokenizer, layouts, index format...) are in
+[spec/pipeline_spec.md](spec/pipeline_spec.md). The report is in [report/](report/).
 
-## Estructura
-
-```
-spec/            reglas comunes + stopwords, tabla de idiomas, consultas y ids del corpus
-python/          implementacion en Python (paquete searchengine) + tests (pytest)
-java/            implementacion en Java 17 (Maven) + tests (JUnit 5)
-javascript/      implementacion en Node.js + tests (node:test)
-sample_data/     12 libros de ejemplo (pg<id>.txt) para probar sin internet
-scripts/         descarga del corpus de los benchmarks
-benchmarks/      orquestador de benchmarks, espejo HTTP local, analisis y resultados
-report/          informe (markdown) y script para generar el PDF
-```
-
-Dentro de una carpeta de datos (`--data`) cada implementación crea:
+## Structure
 
 ```
-datalake/        layout range: 001000/1342.header.txt, 1342.body.txt
+spec/            shared rules + stopwords, language table, queries and corpus ids
+python/          Python implementation (searchengine package) + tests (pytest)
+java/            Java 17 implementation (Maven) + tests (JUnit 5)
+javascript/      Node.js implementation + tests (node:test)
+sample_data/     12 sample books (pg<id>.txt) to try it without internet
+scripts/         downloads the corpus for the benchmarks
+benchmarks/      benchmark orchestrator, local HTTP mirror, analysis and results
+report/          the report (Word document and PDF)
+```
+
+Inside a data folder (`--data`) each implementation creates:
+
+```
+datalake/        range layout: 001000/1342.header.txt, 1342.body.txt
 datamarts/       metadata.db, inverted_index.json | inverted_index/ | inverted_index.db
 control/         downloaded_books.txt, indexed_books.txt, failed_books.txt
 ```
 
-## Requisitos
+## Requirements
 
-- Python 3.10 o superior
-- Java 17 y Maven 3.9
-- Node.js 22.13 o superior (se ha probado con Node 24; usa el módulo `node:sqlite` integrado)
-- MongoDB 7 en `127.0.0.1:27017`, solo para la estructura `mongo` (las demás no lo necesitan)
+- Python 3.10 or newer
+- Java 17 and Maven 3.9
+- Node.js 22.13 or newer (tested with Node 24; it uses the built-in `node:sqlite` module)
+- MongoDB 7 on `127.0.0.1:27017`, only for the `mongo` structure (the others don't need it)
 
-Instalación:
+Setup:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate      # en Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate      # on Windows: .venv\Scripts\activate
 pip install -r python/requirements.txt -r benchmarks/requirements.txt
-mvn -f java/pom.xml package                            # genera java/target/stage1.jar
+mvn -f java/pom.xml package                            # builds java/target/stage1.jar
 (cd javascript && npm install)
 ```
 
-Para la estructura `mongo` hace falta tener `mongod` arrancado, por ejemplo:
+For the `mongo` structure you need `mongod` running, for example:
 
 ```bash
 mongod --dbpath ./mongo-data --bind_ip 127.0.0.1
 ```
 
-## Uso
+## Usage
 
-Los tres lenguajes tienen los mismos comandos y opciones:
+All three languages have the same commands and options:
 
 | | |
 |---|---|
-| Python | `cd python && python -m searchengine <comando> ...` |
-| Java | `java -jar java/target/stage1.jar <comando> ...` |
-| JavaScript | `node javascript/src/cli.js <comando> ...` |
+| Python | `cd python && python -m searchengine <command> ...` |
+| Java | `java -jar java/target/stage1.jar <command> ...` |
+| JavaScript | `node javascript/src/cli.js <command> ...` |
 
-### Probar con los datos de ejemplo (sin internet)
+### Trying it with the sample data (no internet)
 
 ```bash
 cd python
@@ -76,11 +76,11 @@ python -m searchengine pipeline --data ../data --source cache:../sample_data/raw
 python -m searchengine search --data ../data king england
 ```
 
-`pipeline` ejecuta pasos de la capa de control: en cada paso, si hay un libro descargado y sin
-indexar lo indexa, y si no, descarga el siguiente candidato (sin repetir los que ya se descargaron o
-fallaron). Al empezar hace una reconciliación por si la ejecución anterior se cortó a mitad.
+`pipeline` runs steps of the control layer: in each step, if there is a book that is downloaded but not
+indexed it indexes it, and if not, it downloads the next candidate (skipping the ones that were already
+downloaded or failed). When it starts it runs a reconciliation, in case the previous run got cut off halfway.
 
-Lo mismo con Java o JavaScript (desde la raíz del repo):
+Same thing with Java or JavaScript (from the repo root):
 
 ```bash
 java -jar java/target/stage1.jar pipeline --data data-java --source cache:sample_data/raw \
@@ -88,23 +88,23 @@ java -jar java/target/stage1.jar pipeline --data data-java --source cache:sample
 node javascript/src/cli.js search --data data-java king england
 ```
 
-Los tres lenguajes generan exactamente los mismos ficheros, así que pueden leer los datos de los otros.
+All three languages produce exactly the same files, so each one can read the data written by the others.
 
-### Con gutenberg.org
+### With gutenberg.org
 
 ```bash
-python -m searchengine pipeline --data ../data --steps 20          # 1 s de pausa entre descargas
+python -m searchengine pipeline --data ../data --steps 20          # 1 s pause between downloads
 ```
 
-Sin `--candidates` se usan los ids de `spec/corpus_ids.txt`. Otras opciones:
+Without `--candidates` it uses the ids in `spec/corpus_ids.txt`. Other options:
 
-| opción | valores | por defecto |
+| option | values | default |
 |---|---|---|
 | `--layout` | `time`, `book`, `range` | `range` |
 | `--store` | `json`, `hier`, `mongo`, `sqlite` | `sqlite` |
-| `--source` | URL base (o un espejo con las mismas rutas) o `cache:<carpeta>` | `https://www.gutenberg.org` |
-| `--delay` | segundos entre descargas | 1 |
-| `--mongo-uri`, `--mongo-db` | conexión a MongoDB | `mongodb://127.0.0.1:27017`, `searchengine` |
+| `--source` | base URL (or a mirror with the same paths) or `cache:<folder>` | `https://www.gutenberg.org` |
+| `--delay` | seconds between downloads | 1 |
+| `--mongo-uri`, `--mongo-db` | MongoDB connection | `mongodb://127.0.0.1:27017`, `searchengine` |
 
 ## Tests
 
@@ -114,53 +114,48 @@ mvn -f java/pom.xml test               # 62 tests
 cd javascript && npm test              # 55 tests
 ```
 
-Los tests de la estructura `mongo` se saltan si no hay un MongoDB local.
+The `mongo` structure tests are skipped if there is no local MongoDB.
 
 ## Benchmarks
 
-Los comandos `ingest`, `bench-datalake`, `bench-index` y `canonical` de cada lenguaje ejecutan una
-configuración y escriben un JSON con las medidas. El orquestador `benchmarks/bench.py` los lanza para
-los tres lenguajes, cada configuración en un proceso nuevo y con la carpeta de trabajo vacía, mide
-desde fuera el pico de memoria (psutil) y guarda una fila por ejecución en `benchmarks/results/raw/`.
+The `ingest`, `bench-datalake`, `bench-index` and `canonical` commands of each language run one
+configuration and write a JSON file with the measurements. The orchestrator `benchmarks/bench.py` runs them
+for the three languages, each configuration in a new process and with an empty working folder, measures
+the peak memory from outside (psutil) and saves one row per run in `benchmarks/results/raw/`.
 
-1. Descargar una vez el corpus (400 libros, ~145 MB, unos 10 minutos por la pausa de 1 s):
+1. Download the corpus once (400 books, ~145 MB, about 10 minutes because of the 1 s pause):
 
    ```bash
    python scripts/download_corpus.py --cache ~/bd_work/raw_cache --count 400
    ```
 
-   Los ids se sacan con semilla fija, así que sale siempre el mismo corpus (`spec/corpus_ids.txt`).
+   The ids are picked with a fixed seed, so you always get the same corpus (`spec/corpus_ids.txt`).
 
-2. Lanzar las campañas (con el jar compilado, `npm install` hecho y MongoDB arrancado):
+2. Run the campaigns (with the jar built, `npm install` done and MongoDB running):
 
    ```bash
-   python benchmarks/bench.py env                    # datos del equipo
-   python benchmarks/bench.py equivalence            # los 12 casos dan la misma salida
-   python benchmarks/bench.py datalake --reps 5      # escritura, localizacion, deteccion, espacio
-   python benchmarks/bench.py recovery --reps 3      # caida a mitad de una ingesta y reanudacion
-   python benchmarks/bench.py mirror --reps 3        # ingesta con el cliente HTTP de cada lenguaje
-   python benchmarks/bench.py live                   # 10 libros contra gutenberg.org (orientativo)
-   python benchmarks/bench.py index --reps 3         # construccion, consultas, actualizacion, RAM y disco
-   python benchmarks/analyze.py                      # tablas y graficas
+   python benchmarks/bench.py env                    # machine info
+   python benchmarks/bench.py equivalence            # the 12 cases give the same output
+   python benchmarks/bench.py datalake --reps 5      # writing, lookup, detection, disk space
+   python benchmarks/bench.py recovery --reps 3      # crash halfway through an ingest and resume
+   python benchmarks/bench.py mirror --reps 3        # ingest with each language's HTTP client
+   python benchmarks/bench.py live                   # 10 books from gutenberg.org (just for reference)
+   python benchmarks/bench.py index --reps 3         # build, queries, updates, RAM and disk
+   python benchmarks/analyze.py                      # tables and figures
    ```
 
-   Opciones: `--cache` (carpeta del corpus) y `--work` (carpeta de trabajo, por defecto `~/bd_work/runs`).
-   Si una campaña se corta, al relanzarla se salta lo que ya está en el CSV.
+   Options: `--cache` (corpus folder) and `--work` (working folder, `~/bd_work/runs` by default).
+   If a campaign gets interrupted, running it again skips whatever is already in the CSV.
 
-Resultados:
+Results:
 
-- `benchmarks/results/raw/*.csv`: una fila por ejecución.
-- `benchmarks/results/equivalence.txt`: comprobación de que los 3 lenguajes x 4 estructuras dan los
-  mismos metadatos y el mismo índice.
-- `benchmarks/results/tables.md` y `benchmarks/results/figures/`: lo que sale en el informe.
-- `benchmarks/results/env.json`: equipo y versiones.
+- `benchmarks/results/raw/*.csv`: one row per run.
+- `benchmarks/results/equivalence.txt`: check that the 3 languages x 4 structures give the same
+  metadata and the same index.
+- `benchmarks/results/tables.md` and `benchmarks/results/figures/`: the tables and figures behind the report.
+- `benchmarks/results/env.json`: machine and versions.
 
-## Informe
+## Report
 
-`report/informe.md` es el texto del informe. Para generar el PDF:
-
-```bash
-python report/build_report.py          # necesita Chrome o Chromium (variable CHROME_BIN si no lo encuentra)
-```
-
-Los datos de la portada están en `report/cover.json`. El PDF entregado es `report/informe.pdf`.
+The report is `report/report.pdf`. I wrote it in Microsoft Word and exported it to PDF, and the
+editable Word version is in `report/report.docx`.
