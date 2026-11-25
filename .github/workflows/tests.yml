@@ -1,0 +1,58 @@
+# Runs the tests of the three implementations on every push.
+# Each job gets a MongoDB container so the mongo store tests run too (locally they are skipped without it).
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7.0
+        ports: ["27017:27017"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: python/requirements.txt
+      - run: pip install -r python/requirements.txt
+      - run: python -m pytest -q
+        working-directory: python
+
+  java:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7.0
+        ports: ["27017:27017"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - run: mvn -B -f java/pom.xml test
+
+  javascript:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7.0
+        ports: ["27017:27017"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: javascript/package-lock.json
+      - run: npm ci
+        working-directory: javascript
+      - run: npm test
+        working-directory: javascript
