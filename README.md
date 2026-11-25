@@ -1,5 +1,7 @@
 # Stage 1 - Search engine data layer
 
+[![tests](https://github.com/isahernande239h-prog/stage_1/actions/workflows/tests.yml/badge.svg)](https://github.com/isahernande239h-prog/stage_1/actions/workflows/tests.yml)
+
 First stage of the Big Data project (Degree in Data Science and Engineering, ULPGC). The goal is to
 build the data layer of a search engine for books from [Project Gutenberg](https://www.gutenberg.org):
 
@@ -115,6 +117,9 @@ cd javascript && npm test              # 55 tests
 ```
 
 The `mongo` structure tests are skipped if there is no local MongoDB.
+
+On GitHub the three suites run on every push (`.github/workflows/tests.yml`). Each job starts a MongoDB
+container, so there the `mongo` tests run too.
 
 ## Benchmarks
 
