@@ -78,6 +78,36 @@ python -m searchengine pipeline --data ../data --source cache:../sample_data/raw
 python -m searchengine search --data ../data king england
 ```
 
+The pipeline prints one line per step (12 books, so 25 lines in total):
+
+```
+[CONTROL] downloading book 64344
+[CONTROL] indexing book 64344
+[CONTROL] downloading book 57816
+[CONTROL] indexing book 57816
+...
+[CONTROL] indexing book 60198
+[CONTROL] nothing left to do
+```
+
+and `search` prints the books that contain all the terms, as JSON:
+
+```json
+{
+  "query": "king england",
+  "terms": ["king", "england"],
+  "total": 2,
+  "results": [
+    {"book_id": 10581, "title": "Uncle Bernac: A Memory of the Empire", "author": "Arthur Conan Doyle",
+     "language": "en", "year": null},
+    {"book_id": 64344, "title": "History of King Charles the First of England", "author": "Jacob Abbott",
+     "language": "en", "year": null}
+  ]
+}
+```
+
+(The real output has one field per line; it's compacted here.)
+
 `pipeline` runs steps of the control layer: in each step, if there is a book that is downloaded but not
 indexed it indexes it, and if not, it downloads the next candidate (skipping the ones that were already
 downloaded or failed). When it starts it runs a reconciliation, in case the previous run got cut off halfway.
