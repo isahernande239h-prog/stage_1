@@ -150,6 +150,8 @@ The `mongo` structure tests are skipped if there is no local MongoDB.
 
 On GitHub the three suites run on every push (`.github/workflows/tests.yml`). Each job starts a MongoDB
 container, so there the `mongo` tests run too.
+Another job runs the sample data example from [Usage](#usage) in the three languages and checks that
+the pipeline log and the search result are exactly the same.
 
 ## Benchmarks
 
