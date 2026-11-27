@@ -56,3 +56,43 @@ jobs:
         working-directory: javascript
       - run: npm test
         working-directory: javascript
+
+  same-output:
+    # The README example in the three languages: the pipeline log and the search result have to be identical.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: pip install -r python/requirements.txt
+      - run: mvn -B -q -f java/pom.xml package -DskipTests
+      - run: npm ci
+        working-directory: javascript
+      - name: Pipeline and search on the sample data
+        run: |
+          mkdir -p out
+          (cd python && python -m searchengine pipeline --data ../out/py --source cache:../sample_data/raw \
+              --candidates ../sample_data/ids.txt --steps 30 --delay 0 > ../out/py.log
+           python -m searchengine search --data ../out/py king england > ../out/py.json)
+          java -jar java/target/stage1.jar pipeline --data out/java --source cache:sample_data/raw \
+              --candidates sample_data/ids.txt --steps 30 --delay 0 > out/java.log
+          java -jar java/target/stage1.jar search --data out/java king england > out/java.json
+          node javascript/src/cli.js pipeline --data out/js --source cache:sample_data/raw \
+              --candidates sample_data/ids.txt --steps 30 --delay 0 > out/js.log
+          node javascript/src/cli.js search --data out/js king england > out/js.json
+      - name: Compare the outputs
+        run: |
+          for lang in java js; do
+            diff out/py.log out/$lang.log
+            diff out/py.json out/$lang.json
+          done
+          echo "same output in python, java and javascript"
